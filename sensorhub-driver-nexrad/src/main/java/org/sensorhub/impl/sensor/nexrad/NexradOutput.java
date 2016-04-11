@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.Count;
@@ -39,7 +40,6 @@ import org.sensorhub.aws.nexrad.MomentDataBlock;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vast.data.DataBlockMixed;
 import org.vast.data.DataRecordImpl;
 import org.vast.data.QuantityImpl;
 import org.vast.data.SWEFactory;
@@ -288,8 +288,8 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		return 0;
 	}
 
-	public long toJutlianTime(int daysSince70, long msSinceMidnight) {
-		return 0L;
+	public long toJulianTime(long daysSince70, long msSinceMidnight) {
+		return TimeUnit.DAYS.toMillis(daysSince70) + msSinceMidnight;
 		
 	}
 }
