@@ -17,6 +17,7 @@ package org.sensorhub.impl.sensor.nexrad;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -33,9 +34,12 @@ import net.opengis.swe.v20.Time;
 
 import org.sensorhub.api.sensor.SensorDataEvent;
 import org.sensorhub.aws.nexrad.LdmLevel2Reader;
+import org.sensorhub.aws.nexrad.LdmRadial;
+import org.sensorhub.aws.nexrad.MomentDataBlock;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vast.data.DataBlockMixed;
 import org.vast.data.DataRecordImpl;
 import org.vast.data.QuantityImpl;
 import org.vast.data.SWEFactory;
@@ -144,16 +148,6 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 
         sendData = true;
 
-        // connect to data stream
-//        try
-//        {
-////            msgReader = new BufferedReader(new InputStreamReader(commProvider.getInputStream()));
-//        }
-//        catch (IOException e)
-//        {
-//            throw new RuntimeException("Error while initializing communications ", e);
-//        }
-
         ldmFilesProvider = provider;
         
         // start main measurement thread
@@ -167,8 +161,8 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
                     	Path p = ldmFilesProvider.nextFile();
                     	System.err.println("Reading " + p.toString());
                     	LdmLevel2Reader reader = new LdmLevel2Reader();
-                    	reader.read(p.toFile());
-                    	sendRadials();
+                    	List<LdmRadial> radials = reader.read(p.toFile());
+                    	sendRadials(radials);
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -180,10 +174,26 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
         t.start();
     }
 
-	private void sendRadials() throws IOException
+	private void sendRadials(List<LdmRadial> radials) throws IOException
 	{
-//		System.err.println("Send 'em");
-		
+		for(LdmRadial radial: radials) {
+			// build and publish datablock
+			DataBlock dataBlock = nexradStruct.createDataBlock();
+			long days = radial.dataHeader.daysSince1970;
+			long ms = radial.dataHeader.msSinceMidnight;
+			long time = toJulianTime(days, ms);
+			dataBlock.setLongValue(0, time);
+			dataBlock.setDoubleValue(1, radial.dataHeader.elevationAngle);
+			dataBlock.setDoubleValue(2, radial.dataHeader.azimuthAngle);
+			MomentDataBlock momentData = radial.momentData.get(0);
+			dataBlock.setIntValue(momentData.numGates);
+			for(MomentDataBlock data: radial.momentData) {
+				dataBlock.setUnderlyingObject(data.getData());
+			}
+
+			//        latestRecord = dataBlock;
+			eventHandler.publishEvent(new SensorDataEvent(1, NexradOutput.this, dataBlock));
+		}
 	}
     
 	private void sendRadial() throws IOException
@@ -278,4 +288,8 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		return 0;
 	}
 
+	public long toJutlianTime(int daysSince70, long msSinceMidnight) {
+		return 0L;
+		
+	}
 }
