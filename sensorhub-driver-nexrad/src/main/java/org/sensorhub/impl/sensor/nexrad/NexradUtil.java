@@ -19,9 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 public class NexradUtil
 {	
-//	public static enum DATA_TYPE { BR, DVIL, VIL };
 	private static NexradTable nexradTable;
-//	public static String LEVEL3_DVIL_STR = "DS.p134il/";  
 
 	private NexradUtil() {
 	}
@@ -30,7 +28,7 @@ public class NexradUtil
 		if(!ensureTable())
 			return null;
 		if(id.length() == 3) {
-			id = "K" + id;  // Hawaii radars start with P, so thiss is really a bad assumption.  Could just force clients to use 4 character id
+			id = "K" + id;  // Hawaii radars start with P, so this is really a bad assumption.  Could just force clients to use 4 character id
 		}
 		return nexradTable.getSite(id);
 	}
@@ -203,6 +201,5 @@ public class NexradUtil
 	public static void main(String[] args) throws Exception {
 		String nidsPath = "C:/Users/tcook/root/AnythingWx/noaaport/radar/n0qgrk_20140509_1757.nids";
 		long time = NexradUtil.getNidsScanTime(new File(nidsPath));
-//		System.err.println(TimeUtil.getUtcTimeString(time));
 	}
 }
