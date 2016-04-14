@@ -23,10 +23,6 @@ import org.sensorhub.api.sensor.SensorConfig;
 
 public class NexradConfig extends SensorConfig
 {
-    public double centerLatitude; // in deg
-    public double centerLongitude; // in deg
-    public double elevationMeters;
-
     /**
      * List of station IDs to get data for
      */
