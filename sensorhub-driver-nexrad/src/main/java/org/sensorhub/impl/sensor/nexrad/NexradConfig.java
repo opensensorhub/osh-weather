@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor.nexrad;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,8 +32,9 @@ public class NexradConfig extends SensorConfig
     public List<String> siteIds = new ArrayList<String>();
     
 	@DisplayInfo(desc="Path to incoming Nexrad Files")
-    public String dataFolder;
+    public String rootFolder;
+	public Path siteFolder;
 	
-//    public CommConfig commSettings;
+	
     
 }

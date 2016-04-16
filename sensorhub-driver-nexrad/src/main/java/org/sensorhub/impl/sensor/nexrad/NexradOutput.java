@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import net.opengis.swe.v20.BinaryEncoding;
@@ -40,6 +39,7 @@ import org.sensorhub.aws.nexrad.MomentDataBlock;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vast.data.DataBlockMixed;
 import org.vast.data.DataRecordImpl;
 import org.vast.data.QuantityImpl;
 import org.vast.data.SWEFactory;
@@ -60,6 +60,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	LdmFilesProvider ldmFilesProvider;
 //	LdmLevel2Reader reader = new LdmLevel2Reader();
 	InputStream is;
+	private DataRecord productRecord;
 
 	public NexradOutput(NexradSensor parentSensor)
 	{
@@ -109,7 +110,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		numBins.setValue(NUM_BINS);  // this needs to be variable but not working as configured below
 		nexradStruct.addComponent("count",numBins);
 
-		DataRecord productRecord = new DataRecordImpl(3);
+		productRecord = new DataRecordImpl(3);
 
 		Quantity reflQuant = fac.newQuantity(DataType.FLOAT);
 		reflQuant.setDefinition("http://sensorml.com/ont/swe/propertyx/Reflectivity");  // does not exist- will be reflectivity,velocity,or spectrumWidth- choice here?
@@ -162,6 +163,9 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
                     	System.err.println("Reading " + p.toString());
                     	LdmLevel2Reader reader = new LdmLevel2Reader();
                     	List<LdmRadial> radials = reader.read(p.toFile());
+                    	if(radials == null) {
+                    		continue;
+                    	}
                     	sendRadials(radials);
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
@@ -178,21 +182,45 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	{
 		for(LdmRadial radial: radials) {
 			// build and publish datablock
-			DataBlock dataBlock = nexradStruct.createDataBlock();
+			DataBlock nexradBlock = nexradStruct.createDataBlock();
 			long days = radial.dataHeader.daysSince1970;
 			long ms = radial.dataHeader.msSinceMidnight;
 			long time = toJulianTime(days, ms);
-			dataBlock.setLongValue(0, time);
-			dataBlock.setDoubleValue(1, radial.dataHeader.elevationAngle);
-			dataBlock.setDoubleValue(2, radial.dataHeader.azimuthAngle);
+			nexradBlock.setLongValue(0, time);
+			nexradBlock.setDoubleValue(1, radial.dataHeader.elevationAngle);
+			nexradBlock.setDoubleValue(2, radial.dataHeader.azimuthAngle);
 			MomentDataBlock momentData = radial.momentData.get(0);
-			dataBlock.setIntValue(momentData.numGates);
+			nexradBlock.setIntValue(momentData.numGates);
+			DataBlock dataBlock = productRecord.createDataBlock();
+			
+			int blockCnt = 0;
 			for(MomentDataBlock data: radial.momentData) {
-				dataBlock.setUnderlyingObject(data.getData());
+				int blockIdx;
+				switch(data.blockName) {
+				case "REF":
+					((DataBlockMixed)dataBlock).getUnderlyingObject()[0].setUnderlyingObject(data.getData());
+					blockCnt++;
+					break;
+				case "VEL":
+					((DataBlockMixed)dataBlock).getUnderlyingObject()[1].setUnderlyingObject(data.getData());
+					blockCnt++;
+					break;
+				case "SW":
+					((DataBlockMixed)dataBlock).getUnderlyingObject()[2].setUnderlyingObject(data.getData());
+					blockCnt++;
+					break;
+				default:
+					// PHI/RHO/ZDR - may support these later
+					break;
+				}
+				if(blockCnt == 3)  break;
+			}
+			if(blockCnt < 3) {
+				//  we're missing a product, but doesn't break the publishing at least
 			}
 
-			//        latestRecord = dataBlock;
-			//eventHandler.publishEvent(new SensorDataEvent(1, NexradOutput.this, dataBlock));
+			latestRecord = nexradBlock;
+			eventHandler.publishEvent(new SensorDataEvent(1, NexradOutput.this, nexradBlock));
 		}
 	}
     

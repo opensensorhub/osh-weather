@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor.nexrad;
 
+import java.nio.file.Paths;
+
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.aws.nexrad.NexradSqsService;
 import org.sensorhub.impl.sensor.AbstractSensorModule;
@@ -64,7 +66,8 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig>
     	nexradSqs.start();
         
         // start measurement stream
-    	ldmFilesProvider = new LdmFilesProvider(config.dataFolder);
+    	//siteFolder = Paths.get(rootFolder, siteIds.get(0));
+    	ldmFilesProvider = new LdmFilesProvider(Paths.get(config.rootFolder, config.siteIds.get(0)));
     	ldmFilesProvider.start();
         dataInterface.start(ldmFilesProvider); 
     }
