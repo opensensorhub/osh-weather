@@ -192,53 +192,53 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			}
 
 			//        latestRecord = dataBlock;
-			eventHandler.publishEvent(new SensorDataEvent(1, NexradOutput.this, dataBlock));
+			//eventHandler.publishEvent(new SensorDataEvent(1, NexradOutput.this, dataBlock));
 		}
 	}
     
-	private void sendRadial() throws IOException
-	{
-		//  What will really be happening. We will be getting one full sweep every 5 to 6 minutes, and then a pause
-		//  So need to sim this somehow
-		String testFile = "C:/Data/sensorhub/Level2/HTX/KHTX20110427_205716_V03";
-		Level2Reader reader = new Level2Reader();
-		Sweep sweep = reader.readSweep(testFile, Level2Product.REFLECTIVITY);
+//	private void sendRadial() throws IOException
+//	{
+//		//  What will really be happening. We will be getting one full sweep every 5 to 6 minutes, and then a pause
+//		//  So need to sim this somehow
+//		String testFile = "C:/Data/sensorhub/Level2/HTX/KHTX20110427_205716_V03";
+//		Level2Reader reader = new Level2Reader();
+//		Sweep sweep = reader.readSweep(testFile, Level2Product.REFLECTIVITY);
+//
+//		// build and publish datablock
+//		DataBlock dataBlock = nexradStruct.createDataBlock();
+//		Radial first = sweep.getRadials().get(0);
+//		long time = (long)first.radialStartTime / 1000;
+//		dataBlock.setLongValue(0, time);
+//		dataBlock.setDoubleValue(1, first.elevation);
+//		dataBlock.setDoubleValue(2, first.azimuth);
+//		dataBlock.setIntValue(first.numGates);
+//		dataBlock.setUnderlyingObject(first.dataFloat);
+//
+//		//        latestRecord = dataBlock;
+//		eventHandler.publishEvent(new SensorDataEvent(1, NexradOutput.this, dataBlock));
+//	}
 
-		// build and publish datablock
-		DataBlock dataBlock = nexradStruct.createDataBlock();
-		Radial first = sweep.getRadials().get(0);
-		long time = (long)first.radialStartTime / 1000;
-		dataBlock.setLongValue(0, time);
-		dataBlock.setDoubleValue(1, first.elevation);
-		dataBlock.setDoubleValue(2, first.azimuth);
-		dataBlock.setIntValue(first.numGates);
-		dataBlock.setUnderlyingObject(first.dataFloat);
-
-		//        latestRecord = dataBlock;
-		eventHandler.publishEvent(new SensorDataEvent(1, NexradOutput.this, dataBlock));
-	}
-
-
-	protected void startFile()
-	{
-		if (timer != null)
-			return;
-		timer = new Timer();
-
-		// start main measurement generation thread
-		TimerTask task = new TimerTask() {
-			public void run()
-			{
-				try {
-					sendRadial();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}            
-		};
-
-		timer.scheduleAtFixedRate(task, 0, (long)(getAverageSamplingPeriod()*1000));        
-	}
+//
+//	protected void startFile()
+//	{
+//		if (timer != null)
+//			return;
+//		timer = new Timer();
+//
+//		// start main measurement generation thread
+//		TimerTask task = new TimerTask() {
+//			public void run()
+//			{
+//				try {
+//					sendRadial();
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+//			}            
+//		};
+//
+//		timer.scheduleAtFixedRate(task, 0, (long)(getAverageSamplingPeriod()*1000));        
+//	}
 
 
 	protected void stop()

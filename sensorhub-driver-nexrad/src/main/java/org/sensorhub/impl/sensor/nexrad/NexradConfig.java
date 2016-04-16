@@ -27,7 +27,7 @@ public class NexradConfig extends SensorConfig
      * List of station IDs to get data for
      */
     @DisplayInfo(label="Station IDs", desc="List of station IDs to get data for")
-    public List<String> stationIDs = new ArrayList<String>();
+    public List<String> siteIds = new ArrayList<String>();
     
 	@DisplayInfo(desc="Path to incoming Nexrad Files")
     public String dataFolder;

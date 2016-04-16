@@ -14,10 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor.nexrad;
 
-import org.sensorhub.api.comm.CommConfig;
-import org.sensorhub.api.comm.ICommProvider;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.config.DisplayInfo;
+import org.sensorhub.aws.nexrad.NexradSqsService;
 import org.sensorhub.impl.sensor.AbstractSensorModule;
 
 
@@ -33,6 +31,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig>
     NexradOutput dataInterface;
 //	ICommProvider<? super CommConfig> commProvider;
     LdmFilesProvider ldmFilesProvider;
+	private NexradSqsService nexradSqs;
 
 	@Override
     public void init(NexradConfig config) throws SensorHubException
@@ -61,24 +60,8 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig>
     @Override
     public void start() throws SensorHubException
     {
-//    	 // init comm provider
-//        if (commProvider == null)
-//        {
-//            try
-//            {
-//                if (config.commSettings == null)
-//                    throw new SensorHubException("No communication settings specified");
-//                
-//                // start comm provider
-//                commProvider = config.commSettings.getProvider();
-//                commProvider.start();
-//            }
-//            catch (Exception e)
-//            {
-//                commProvider = null;
-//                throw e;
-//            }
-//        }
+		nexradSqs = new NexradSqsService(config.siteIds.get(0));
+    	nexradSqs.start();
         
         // start measurement stream
     	ldmFilesProvider = new LdmFilesProvider(config.dataFolder);
@@ -90,7 +73,10 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig>
     @Override
     public void stop() throws SensorHubException
     {
+    	// stop watching the dir
         dataInterface.stop();
+        // delete the Amazaon Queue or it will keep collecting messages
+        nexradSqs.stop();  
     }
     
 
