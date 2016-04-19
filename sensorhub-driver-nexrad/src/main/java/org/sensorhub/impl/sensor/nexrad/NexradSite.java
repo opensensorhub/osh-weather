@@ -17,11 +17,11 @@ public class NexradSite
 	//  TODO: round up these conversion factors and put in Util class
 	public static final double FEET_TO_METERS =  0.3048;
 	
-	public NexradSite() {
-		// TODO Auto-generated constructor stub
+	public NexradSite(String id) {
+		this.id = id;
 	}
 
-//	public String toString() {
-//		return id + " " + name + "  " + lla + "m" + "  " + elevationFeet + "ft";
-//	}
+	public String toString() {
+		return id + " " + name + "  " + lat + "," + lon + "," + elevation + " meters";
+	}
 }

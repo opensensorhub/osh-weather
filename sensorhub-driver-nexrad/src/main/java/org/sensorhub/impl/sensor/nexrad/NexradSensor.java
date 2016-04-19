@@ -17,8 +17,11 @@ package org.sensorhub.impl.sensor.nexrad;
 import java.nio.file.Paths;
 
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.aws.nexrad.NexradSqsService;
 import org.sensorhub.impl.sensor.AbstractSensorModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -28,9 +31,12 @@ import org.sensorhub.impl.sensor.AbstractSensorModule;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since Nov 2, 2014
  */
-public class NexradSensor extends AbstractSensorModule<NexradConfig>
+public class NexradSensor extends AbstractSensorModule<NexradConfig> //implements IMultiSourceDataProducer
 {
-    NexradOutput dataInterface;
+    static final Logger log = LoggerFactory.getLogger(NexradSensor.class);
+    static final String SENSOR_UID_PREFIX = "urn:test:sensors:nexrad";
+    
+	NexradOutput dataInterface;
 //	ICommProvider<? super CommConfig> commProvider;
     LdmFilesProvider ldmFilesProvider;
 	private NexradSqsService nexradSqs;
@@ -39,6 +45,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig>
     public void init(NexradConfig config) throws SensorHubException
     {
     	super.init(config);
+		config.getSite();
     	
     	dataInterface = new NexradOutput(this);
         addOutput(dataInterface, false);
@@ -53,7 +60,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig>
         {
             super.updateSensorDescription();
             sensorDescription.setId("NEXRAD_SENSOR");
-            sensorDescription.setUniqueIdentifier("urn:test:sensors:nexrad");
+            sensorDescription.setUniqueIdentifier(SENSOR_UID_PREFIX); // + config.siteIds.get(0));
             sensorDescription.setDescription("Sensor supporting Level II Nexrad data");
         }
     }
@@ -66,7 +73,6 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig>
     	nexradSqs.start();
         
         // start measurement stream
-    	//siteFolder = Paths.get(rootFolder, siteIds.get(0));
     	ldmFilesProvider = new LdmFilesProvider(Paths.get(config.rootFolder, config.siteIds.get(0)));
     	ldmFilesProvider.start();
         dataInterface.start(ldmFilesProvider); 
@@ -79,6 +85,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig>
     	// stop watching the dir
         dataInterface.stop();
         // delete the Amazaon Queue or it will keep collecting messages
+        System.err.println("STOP");
         nexradSqs.stop();  
     }
     

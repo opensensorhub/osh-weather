@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor.nexrad;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -34,7 +35,15 @@ public class NexradConfig extends SensorConfig
 	@DisplayInfo(desc="Path to incoming Nexrad Files")
     public String rootFolder;
 	public Path siteFolder;
+
+	public NexradSite site;
 	
-	
-    
+	public void getSite() {
+		try {
+			site = NexradTable.getInstance().getSite(siteIds.get(0));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 }

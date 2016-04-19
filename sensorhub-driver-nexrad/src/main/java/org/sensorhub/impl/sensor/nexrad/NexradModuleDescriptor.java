@@ -33,7 +33,7 @@ public class NexradModuleDescriptor implements IModuleProvider
     @Override
     public String getModuleDescription()
     {
-        return "Nexrad 88D Radar data- archive Level III for now. Realtime and Level II support forthcoming";
+        return "Nexrad 88D Radar data- Realtime and archived Level II and Level III";
     }
 
 

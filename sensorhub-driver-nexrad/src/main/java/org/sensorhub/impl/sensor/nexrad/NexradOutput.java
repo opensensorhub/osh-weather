@@ -53,12 +53,12 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	private static final Logger log = LoggerFactory.getLogger(NexradOutput.class);
 	DataComponent nexradStruct;
 	DataBlock latestRecord;
-	BinaryEncoding encoding;
+//	BinaryEncoding encoding;
+	DataEncoding encoding;
 	boolean sendData;
 	Timer timer;	
 	static int NUM_BINS = 720;  // this should be fixed at construction time as part of the config
 	LdmFilesProvider ldmFilesProvider;
-//	LdmLevel2Reader reader = new LdmLevel2Reader();
 	InputStream is;
 	private DataRecord productRecord;
 
@@ -84,7 +84,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		// SWE Common data structure
 		nexradStruct = new DataRecordImpl(5);
 		nexradStruct.setName(getName());
-		nexradStruct.setDefinition("http://sensorml.com/ont/swe/property/Location");
+		nexradStruct.setDefinition("http://sensorml.com/ont/swe/propertyx/NexradRadial");
 
 		//  Time,el,az,data[]
 		Time time = new TimeImpl();
@@ -110,7 +110,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		numBins.setValue(NUM_BINS);  // this needs to be variable but not working as configured below
 		nexradStruct.addComponent("count",numBins);
 
-		productRecord = new DataRecordImpl(3);
+//		productRecord = new DataRecordImpl(3);
 
 		Quantity reflQuant = fac.newQuantity(DataType.FLOAT);
 		reflQuant.setDefinition("http://sensorml.com/ont/swe/propertyx/Reflectivity");  // does not exist- will be reflectivity,velocity,or spectrumWidth- choice here?
@@ -118,7 +118,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		DataArray reflData = fac.newDataArray();
 		reflData.setElementType("Reflectivity", reflQuant);
 		reflData.setElementCount(numBins); //  alex adding support for this
-		productRecord.addComponent("Reflectivity", reflData);
+		nexradStruct.addComponent("Reflectivity", reflData);
 
 		Quantity velQuant = fac.newQuantity(DataType.FLOAT);
 		velQuant.setDefinition("http://sensorml.com/ont/swe/propertyx/Velocity");  // does not exist- will be reflectivity,velocity,or spectrumWidth- choice here?
@@ -126,7 +126,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		DataArray velData = fac.newDataArray();
 		velData.setElementType("Velocity", velQuant);
 		velData.setElementCount(numBins); 
-		productRecord.addComponent("Velocity", velData);
+		nexradStruct.addComponent("Velocity", velData);
 
 		Quantity swQuant = fac.newQuantity(DataType.FLOAT);
 		swQuant.setDefinition("http://sensorml.com/ont/swe/propertyx/SpectrumWidth");  // does not exist- will be reflectivity,velocity,or spectrumWidth- choice here?
@@ -134,11 +134,10 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		DataArray swData = fac.newDataArray();
 		swData.setElementType("SpectrumWidth", swQuant);
 		swData.setElementCount(numBins); 
-		productRecord.addComponent("SpectrumWidth", swData);
+		nexradStruct.addComponent("SpectrumWidth", swData);
 
-		nexradStruct.addComponent("data", productRecord);
-
-		encoding = SWEHelper.getDefaultBinaryEncoding(nexradStruct);
+//		encoding = SWEHelper.getDefaultBinaryEncoding(nexradStruct);
+		encoding = fac.newTextEncoding();
 	}
 	
 
@@ -160,6 +159,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
                 {
                     try {
                     	Path p = ldmFilesProvider.nextFile();
+                    	log.debug("Reading {}" , p.toString());
                     	System.err.println("Reading " + p.toString());
                     	LdmLevel2Reader reader = new LdmLevel2Reader();
                     	List<LdmRadial> radials = reader.read(p.toFile());
@@ -169,7 +169,8 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
                     	sendRadials(radials);
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						e.printStackTrace(System.err);
+						log.error(e.getMessage());
 						continue;
 					}
                 }
@@ -181,32 +182,41 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	private void sendRadials(List<LdmRadial> radials) throws IOException
 	{
 		for(LdmRadial radial: radials) {
-			// build and publish datablock
+//			// build and publish datablock
+			DataArray refArr = (DataArray)nexradStruct.getComponent(4);
+			DataArray velArr = (DataArray)nexradStruct.getComponent(5);
+			DataArray swArr = (DataArray)nexradStruct.getComponent(6);
+//
+//			
+			MomentDataBlock momentData = radial.momentData.get(0);
+			refArr.updateSize(momentData.numGates);
+			velArr.updateSize(momentData.numGates);
+			swArr.updateSize(momentData.numGates);
 			DataBlock nexradBlock = nexradStruct.createDataBlock();
+			
 			long days = radial.dataHeader.daysSince1970;
 			long ms = radial.dataHeader.msSinceMidnight;
-			long time = toJulianTime(days, ms);
-			nexradBlock.setLongValue(0, time);
+			double utcTime = (double)(radial.toJulianTime(days, ms)/1000.);
+			nexradBlock.setDoubleValue(0, utcTime);
 			nexradBlock.setDoubleValue(1, radial.dataHeader.elevationAngle);
 			nexradBlock.setDoubleValue(2, radial.dataHeader.azimuthAngle);
-			MomentDataBlock momentData = radial.momentData.get(0);
-			nexradBlock.setIntValue(momentData.numGates);
-			DataBlock dataBlock = productRecord.createDataBlock();
+			
+			nexradBlock.setIntValue(3, momentData.numGates);
 			
 			int blockCnt = 0;
 			for(MomentDataBlock data: radial.momentData) {
 				int blockIdx;
 				switch(data.blockName) {
 				case "REF":
-					((DataBlockMixed)dataBlock).getUnderlyingObject()[0].setUnderlyingObject(data.getData());
+					((DataBlockMixed)nexradBlock).getUnderlyingObject()[4].setUnderlyingObject(data.getData());
 					blockCnt++;
 					break;
 				case "VEL":
-					((DataBlockMixed)dataBlock).getUnderlyingObject()[1].setUnderlyingObject(data.getData());
+					((DataBlockMixed)nexradBlock).getUnderlyingObject()[5].setUnderlyingObject(data.getData());
 					blockCnt++;
 					break;
 				case "SW":
-					((DataBlockMixed)dataBlock).getUnderlyingObject()[2].setUnderlyingObject(data.getData());
+					((DataBlockMixed)nexradBlock).getUnderlyingObject()[6].setUnderlyingObject(data.getData());
 					blockCnt++;
 					break;
 				default:
@@ -316,8 +326,4 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		return 0;
 	}
 
-	public long toJulianTime(long daysSince70, long msSinceMidnight) {
-		return TimeUnit.DAYS.toMillis(daysSince70) + msSinceMidnight;
-		
-	}
 }

@@ -38,7 +38,8 @@ public class NexradTable extends HashMap<String, NexradSite>
 	}
 
 	private void buildTable() throws IOException {
-		URL url = this.getClass().getResource("NexradLocations.txt");
+		ClassLoader classLoader = getClass().getClassLoader();
+		URL url = classLoader.getResource("NexradLocations.txt");
 		if(url == null)
 			throw new IOException("NexradTable.buildTable().  NexradLocations.txt file not found in classpath");
 		BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
@@ -61,8 +62,8 @@ public class NexradTable extends HashMap<String, NexradSite>
 				//  Electing to throw out 4 non-US radars
 				//  Can re-add them if they buy us somtehing down the road
 				continue;
-			site = new NexradSite();
-			site.id = inline.substring(9,13);
+			String id = inline.substring(9,13);
+			site = new NexradSite(id);
 			site.name = inline.substring(20, 51).trim();
 			stmp = inline.substring(106,116).trim();
 			lat = Double.parseDouble(stmp);
@@ -110,78 +111,9 @@ public class NexradTable extends HashMap<String, NexradSite>
 		return null;	
 	}
 	
-	// Tmp
-	public static void outputCsv() throws Exception {
-		String outfile = "C:/Users/tcook/root/AnythingWx/nexrad_feeds/NexradLocations.csv";
-
-		URL url = NexradTable.class.getResource("NexradLocations.txt");
-		if(url == null)
-			throw new IOException("NexradTable.buildTable().  NexradLocations.txt file not found in classpath");
-		BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
-		BufferedWriter bw = new BufferedWriter(new FileWriter(outfile));
-
-		boolean feof = false;
-
-		//  hdr
-		String inline = reader.readLine();
-		//  write and add commas
-		StringTokenizer st = new StringTokenizer(inline, " ");
-		String ctmp;
-		while(st.hasMoreElements()) {
-			ctmp = st.nextToken();
-			if(ctmp.equals("ELEV"))
-				ctmp = "ELEV (ft)";
-			bw.write(ctmp.trim() + ",");
-		}
-		bw.write("\n");
-		
-		// skip
-		reader.readLine();
-		
-		NexradSite site;
-		String stmp;
-		double lat, lon, altMeters;
-		String state;
-		
-		
-		while (!feof) {
-			inline = reader.readLine();
-			if (inline == null || inline.trim().length() == 0)
-				break;
-			stmp = inline.substring(0,8).trim();
-			bw.write(stmp + ",");
-			stmp = inline.substring(9,13).trim();
-			bw.write(stmp + ",");
-			stmp = inline.substring(14, 19).trim();
-			bw.write(stmp + ",");
-			stmp = inline.substring(20, 51).trim();
-			bw.write(stmp + ",");
-			stmp = inline.substring(51,72).trim();
-			if(stmp.startsWith("KOREA"))
-				stmp="SOUTH KOREA";
-			bw.write(stmp + ",");
-			stmp = inline.substring(72,74).trim();
-			bw.write(stmp + ",");
-			stmp = inline.substring(75,105).trim();
-			bw.write(stmp + ",");
-			stmp = inline.substring(106,116).trim();
-			bw.write(stmp + ",");
-			stmp = inline.substring(116,127).trim();
-			bw.write(stmp + ",");
-			stmp = inline.substring(127,134).trim();
-			bw.write(stmp + ",");
-			stmp = inline.substring(134,140).trim();
-			bw.write(stmp + ",");
-			stmp =inline.substring(140,190).trim();
-			bw.write(stmp + "\n");
-		}
-		
-		reader.close();
-		bw.close();
-	}
 	
 	public static void main(String[] args) throws Exception  {
 //		NexradTable.outputCsv();
-		System.err.println(NexradTable.getInstance().getSite("GYX"));
+		System.err.println(NexradTable.getInstance().getSite("LBB"));
 	}
 }	
