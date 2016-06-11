@@ -35,15 +35,18 @@ public class NexradConfig extends SensorConfig
 	@DisplayInfo(desc="Path to incoming Nexrad Files")
     public String rootFolder;
 	public Path siteFolder;
+//	public long keepAliveTimeMs = ;
 
-	public NexradSite site;
+	public NexradSite site;  // 
 	
-	public void getSite() {
+	public NexradSite getSite(String siteId) {
 		try {
-			site = NexradTable.getInstance().getSite(siteIds.get(0));
+			site = NexradTable.getInstance().getSite(siteId);
+			return site;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		return null;  // throw exception?
 	}
 
 }

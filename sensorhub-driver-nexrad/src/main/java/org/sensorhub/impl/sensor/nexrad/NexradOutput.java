@@ -32,6 +32,7 @@ import net.opengis.swe.v20.DataType;
 import net.opengis.swe.v20.Quantity;
 import net.opengis.swe.v20.Time;
 
+import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.sensor.SensorDataEvent;
 import org.sensorhub.aws.nexrad.LdmLevel2Reader;
 import org.sensorhub.aws.nexrad.LdmRadial;
@@ -53,18 +54,19 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	private static final Logger log = LoggerFactory.getLogger(NexradOutput.class);
 	DataComponent nexradStruct;
 	DataBlock latestRecord;
-//	BinaryEncoding encoding;
 	DataEncoding encoding;
 	boolean sendData;
 	Timer timer;	
-	static int NUM_BINS = 720;  // this should be fixed at construction time as part of the config
+//	static int NUM_BINS = 720;  // this should be fixed at construction time as part of the config
 	LdmFilesProvider ldmFilesProvider;
 	InputStream is;
-	private DataRecord productRecord;
-
+	int numListeners;
+	NexradSensor nexradSensor;
+	
 	public NexradOutput(NexradSensor parentSensor)
 	{
 		super(parentSensor);
+		nexradSensor = parentSensor;
 	}
 
 
@@ -80,12 +82,18 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	{
 		//  Add Location only as ouptut- Alex is adding support for this
 //		SweHelper.newLocationVectorLLa(...);
-		
+		SWEFactory fac = new SWEFactory();
+		SWEHelper helper = new SWEHelper();
+
 		// SWE Common data structure
 		nexradStruct = new DataRecordImpl(5);
 		nexradStruct.setName(getName());
 		nexradStruct.setDefinition("http://sensorml.com/ont/swe/propertyx/NexradRadial");
 
+		// stationName
+//		nexradStruct.addField("site", helper.newText("http://sensorml.com/ont/swe/property/StationID", "Site ID", null));
+//		nexradStruct.addComponent("siteId", fac.newText());
+		
 		//  Time,el,az,data[]
 		Time time = new TimeImpl();
 		time.getUom().setHref(Time.ISO_TIME_UNIT);
@@ -103,14 +111,11 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		az.setDefinition("http://sensorml.com/ont/swe/property/AzimuthAngle");
 		nexradStruct.addComponent("azimuth",az);
 
-		SWEFactory fac = new SWEFactory();
 		Count numBins = fac.newCount(DataType.INT);
 		numBins.setDefinition("http://sensorml.com/ont/swe/property/NumberOfSamples"); 
 		numBins.setId("NUM_BINS");
-		numBins.setValue(NUM_BINS);  // this needs to be variable but not working as configured below
+//		numBins.setValue(NUM_BINS);  
 		nexradStruct.addComponent("count",numBins);
-
-//		productRecord = new DataRecordImpl(3);
 
 		Quantity reflQuant = fac.newQuantity(DataType.FLOAT);
 		reflQuant.setDefinition("http://sensorml.com/ont/swe/propertyx/Reflectivity");  // does not exist- will be reflectivity,velocity,or spectrumWidth- choice here?
@@ -168,7 +173,6 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
                     	}
                     	sendRadials(radials);
 					} catch (IOException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace(System.err);
 						log.error(e.getMessage());
 						continue;
@@ -197,6 +201,9 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			long days = radial.dataHeader.daysSince1970;
 			long ms = radial.dataHeader.msSinceMidnight;
 			double utcTime = (double)(radial.toJulianTime(days, ms)/1000.);
+
+			
+//			nexradBlock.setStringValue(0, radial.dataHeader.siteId);
 			nexradBlock.setDoubleValue(0, utcTime);
 			nexradBlock.setDoubleValue(1, radial.dataHeader.elevationAngle);
 			nexradBlock.setDoubleValue(2, radial.dataHeader.azimuthAngle);
@@ -313,6 +320,8 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	@Override
 	public DataBlock getLatestRecord()
 	{
+		nexradSensor.latestRecordRequested();
+		//  if queue was not active and has to be created, we cannot return the record yet!
 		return latestRecord;
 	}
 
@@ -326,4 +335,24 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		return 0;
 	}
 
+    @Override
+    public void registerListener(IEventListener listener)
+    {
+        super.registerListener(listener);
+        numListeners++;
+        System.err.println("Reg:NumListeners is " + numListeners);
+        if(numListeners == 1)
+    		nexradSensor.activateQueue();
+    }
+
+
+    @Override
+    public void unregisterListener(IEventListener listener)
+    {
+        super.unregisterListener(listener);
+        numListeners--;
+        System.err.println("UnReg:NumListeners is " + numListeners);
+        if(numListeners == 0)
+        	nexradSensor.setQueueIdle();
+    }
 }
