@@ -19,15 +19,12 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Timer;
-import java.util.concurrent.TimeUnit;
 
-import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.Count;
 import net.opengis.swe.v20.DataArray;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
-import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.DataType;
 import net.opengis.swe.v20.Quantity;
 import net.opengis.swe.v20.Time;
@@ -37,6 +34,7 @@ import org.sensorhub.api.sensor.SensorDataEvent;
 import org.sensorhub.aws.nexrad.LdmLevel2Reader;
 import org.sensorhub.aws.nexrad.LdmRadial;
 import org.sensorhub.aws.nexrad.MomentDataBlock;
+import org.sensorhub.impl.common.BasicEventHandler;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +75,6 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	}
 
 
-	@Override
 	protected void init()
 	{
 		//  Add Location only as ouptut- Alex is adding support for this
@@ -320,6 +317,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	@Override
 	public DataBlock getLatestRecord()
 	{
+		((BasicEventHandler)eventHandler).getNumListeners();
 		nexradSensor.latestRecordRequested();
 		//  if queue was not active and has to be created, we cannot return the record yet!
 		return latestRecord;

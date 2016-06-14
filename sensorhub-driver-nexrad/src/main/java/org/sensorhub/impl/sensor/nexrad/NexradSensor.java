@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor.nexrad;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.Point;
@@ -37,8 +39,6 @@ import org.sensorhub.impl.sensor.AbstractSensorModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.sensorML.SMLHelper;
-
-import edu.emory.mathcs.backport.java.util.concurrent.TimeUnit;
 
 
 /**
@@ -194,7 +194,11 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		}
 
 		// start measurement stream
-		ldmFilesProvider = new LdmFilesProvider(Paths.get(config.rootFolder, config.siteIds.get(0)));
+		try {
+			ldmFilesProvider = new LdmFilesProvider(Paths.get(config.rootFolder, config.siteIds.get(0)));
+		} catch (IOException e) {
+			throw new SensorHubException(e.getMessage(), e);
+		}
 		ldmFilesProvider.start();
 		dataInterface.start(ldmFilesProvider); 
 
