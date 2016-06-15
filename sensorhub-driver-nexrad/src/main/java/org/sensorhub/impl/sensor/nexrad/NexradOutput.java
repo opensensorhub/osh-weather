@@ -31,11 +31,11 @@ import net.opengis.swe.v20.Time;
 
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.sensor.SensorDataEvent;
-import org.sensorhub.aws.nexrad.LdmLevel2Reader;
-import org.sensorhub.aws.nexrad.LdmRadial;
-import org.sensorhub.aws.nexrad.MomentDataBlock;
 import org.sensorhub.impl.common.BasicEventHandler;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
+import org.sensorhub.impl.sensor.nexrad.aws.LdmLevel2Reader;
+import org.sensorhub.impl.sensor.nexrad.aws.LdmRadial;
+import org.sensorhub.impl.sensor.nexrad.aws.MomentDataBlock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.data.DataBlockMixed;

@@ -34,8 +34,8 @@ import net.opengis.sensorml.v20.PhysicalSystem;
 
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
-import org.sensorhub.aws.nexrad.NexradSqsService;
 import org.sensorhub.impl.sensor.AbstractSensorModule;
+import org.sensorhub.impl.sensor.nexrad.aws.NexradSqsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.sensorML.SMLHelper;
