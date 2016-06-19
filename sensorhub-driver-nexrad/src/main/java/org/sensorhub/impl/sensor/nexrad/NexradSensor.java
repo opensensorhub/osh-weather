@@ -74,29 +74,19 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		this.siteDescs = new LinkedHashMap<String, PhysicalSystem>();
 	}
 
-	public void latestRecordRequested() {
+	public void setQueueActive() {
 		if(!queueActive) {
 			nexradSqs = new NexradSqsService(config.siteIds);
 			nexradSqs.start();
 			queueActive = true;
 		} 
-		// if
-		queueIdleTime = System.currentTimeMillis();
 	}
 	
-	public void activateQueue() {
-		// start the queue
-		if(!queueActive) {
-			nexradSqs = new NexradSqsService(config.siteIds);
-			nexradSqs.start();
-			queueActive = true;
-		} else {
-		}
-		queueIdleTime = System.currentTimeMillis();
-	}
-
 	public void setQueueIdle() {
+		if(!queueActive)
+			return;
 		queueIdleTime = System.currentTimeMillis();
+		System.err.println("QueueIT set to " + queueIdleTime);
 	}
 
 	class CheckQueueStatus extends TimerTask {
@@ -106,27 +96,27 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 			System.err.println("Check queue.  QueueActive = " + queueActive);
 			if(!queueActive)
 				return;
+			long it = System.currentTimeMillis() - queueIdleTime;
+			System.err.println(queueIdleTime + ":  " + it + " >= " + QUEUE_IDLE_TIME_THRESHOLD);
 			if(System.currentTimeMillis() - queueIdleTime > QUEUE_IDLE_TIME_THRESHOLD) {
-				System.err.println("Check Queue. Stopping unused queue... ");
+				System.err.println("Check Queue. Stopping unu sed queue... ");
 				nexradSqs.stop();
 				queueActive = false;
 			}
 		}
 		
 	}
-	
 
 	@Override
 	public void init(NexradConfig config) throws SensorHubException
 	{
 		super.init(config);
-		activateQueue();
+		queueIdleTime = System.currentTimeMillis();
+		setQueueActive();
 		
 		Timer queueTimer = new Timer();  //At this line a new Thread will be created
 	    queueTimer.scheduleAtFixedRate(new CheckQueueStatus(), 0, QUEUE_CHECK_INTERVAL); //delay in milliseconds
 
-
-		
 		dataInterface = new NexradOutput(this);
 		addOutput(dataInterface, false);
 		dataInterface.init();
