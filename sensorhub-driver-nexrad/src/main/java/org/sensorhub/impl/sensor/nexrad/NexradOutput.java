@@ -31,11 +31,10 @@ import net.opengis.swe.v20.DataType;
 import net.opengis.swe.v20.Quantity;
 import net.opengis.swe.v20.Time;
 
-import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.sensor.SensorDataEvent;
 import org.sensorhub.impl.common.BasicEventHandler;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
-import org.sensorhub.impl.sensor.nexrad.NexradSensor.CheckQueueStatus;
+import org.sensorhub.impl.sensor.nexrad.aws.AwsNexradUtil;
 import org.sensorhub.impl.sensor.nexrad.aws.LdmLevel2Reader;
 import org.sensorhub.impl.sensor.nexrad.aws.LdmRadial;
 import org.sensorhub.impl.sensor.nexrad.aws.MomentDataBlock;
@@ -90,19 +89,18 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		SWEHelper helper = new SWEHelper();
 
 		// SWE Common data structure
-		nexradStruct = new DataRecordImpl(5);
+		nexradStruct = new DataRecordImpl(8);  // was 6 before I added siteId and it still worked?
 		nexradStruct.setName(getName());
 		nexradStruct.setDefinition("http://sensorml.com/ont/swe/propertyx/NexradRadial");
-
-		// stationName
-		//		nexradStruct.addField("site", helper.newText("http://sensorml.com/ont/swe/property/StationID", "Site ID", null));
-		//		nexradStruct.addComponent("siteId", fac.newText());
 
 		//  Time,el,az,data[]
 		Time time = new TimeImpl();
 		time.getUom().setHref(Time.ISO_TIME_UNIT);
 		time.setDefinition(SWEConstants.DEF_SAMPLING_TIME);
 		nexradStruct.addComponent("time", time);
+
+		// 88D site identifier
+		nexradStruct.addComponent("siteId", fac.newText());
 
 		Quantity el;
 		el = new QuantityImpl();
@@ -191,9 +189,9 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	{
 		for(LdmRadial radial: radials) {
 			//			// build and publish datablock
-			DataArray refArr = (DataArray)nexradStruct.getComponent(4);
-			DataArray velArr = (DataArray)nexradStruct.getComponent(5);
-			DataArray swArr = (DataArray)nexradStruct.getComponent(6);
+			DataArray refArr = (DataArray)nexradStruct.getComponent(5);
+			DataArray velArr = (DataArray)nexradStruct.getComponent(6);
+			DataArray swArr = (DataArray)nexradStruct.getComponent(7);
 			//
 			//			
 			MomentDataBlock momentData = radial.momentData.get(0);
@@ -204,30 +202,31 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 
 			long days = radial.dataHeader.daysSince1970;
 			long ms = radial.dataHeader.msSinceMidnight;
-			double utcTime = (double)(radial.toJulianTime(days, ms)/1000.);
+			double utcTime = (double)(AwsNexradUtil.toJulianTime(days, ms)/1000.);
 
 
 			//			nexradBlock.setStringValue(0, radial.dataHeader.siteId);
 			nexradBlock.setDoubleValue(0, utcTime);
-			nexradBlock.setDoubleValue(1, radial.dataHeader.elevationAngle);
-			nexradBlock.setDoubleValue(2, radial.dataHeader.azimuthAngle);
+			nexradBlock.setStringValue(1, radial.dataHeader.siteId);
+			nexradBlock.setDoubleValue(2, radial.dataHeader.elevationAngle);
+			nexradBlock.setDoubleValue(3, radial.dataHeader.azimuthAngle);
 
-			nexradBlock.setIntValue(3, momentData.numGates);
+			nexradBlock.setIntValue(4, momentData.numGates);
 
 			int blockCnt = 0;
 			for(MomentDataBlock data: radial.momentData) {
 				int blockIdx;
 				switch(data.blockName) {
 				case "REF":
-					((DataBlockMixed)nexradBlock).getUnderlyingObject()[4].setUnderlyingObject(data.getData());
-					blockCnt++;
-					break;
-				case "VEL":
 					((DataBlockMixed)nexradBlock).getUnderlyingObject()[5].setUnderlyingObject(data.getData());
 					blockCnt++;
 					break;
-				case "SW":
+				case "VEL":
 					((DataBlockMixed)nexradBlock).getUnderlyingObject()[6].setUnderlyingObject(data.getData());
+					blockCnt++;
+					break;
+				case "SW":
+					((DataBlockMixed)nexradBlock).getUnderlyingObject()[7].setUnderlyingObject(data.getData());
 					blockCnt++;
 					break;
 				default:
@@ -241,7 +240,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			}
 
 			latestRecord = nexradBlock;
-			eventHandler.publishEvent(new SensorDataEvent(1, NexradOutput.this, nexradBlock));
+			eventHandler.publishEvent(new SensorDataEvent(System.currentTimeMillis(), NexradOutput.this, nexradBlock));
 		}
 	}
 

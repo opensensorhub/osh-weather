@@ -64,7 +64,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 
 	long queueIdleTime;
 	boolean queueActive = false;
-	static final long QUEUE_IDLE_TIME_THRESHOLD = TimeUnit.MINUTES.toMillis(3);
+	static final long QUEUE_IDLE_TIME_THRESHOLD = TimeUnit.MINUTES.toMillis(20);
 	static final long QUEUE_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(1);
 
 	public NexradSensor()
@@ -138,7 +138,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 			for (String siteId: config.siteIds)
 			{
 				String name = "site_" + siteId;
-				String href = SITE_UID_PREFIX + siteId;
+				String href = SITE_UID_PREFIX + "_" + siteId;
 				System.err.println("NexradSensorURL: " + href);
 				((PhysicalSystem)sensorDescription).getComponentList().add(name, href, null);
 			}
