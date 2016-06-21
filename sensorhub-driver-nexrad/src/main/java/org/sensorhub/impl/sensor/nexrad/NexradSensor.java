@@ -50,7 +50,7 @@ import org.vast.sensorML.SMLHelper;
  */
 public class NexradSensor extends AbstractSensorModule<NexradConfig> implements IMultiSourceDataProducer
 {
-	static final Logger log = LoggerFactory.getLogger(NexradSensor.class);
+	static final Logger logger = LoggerFactory.getLogger(NexradSensor.class);
 	static final String SITE_UID_PREFIX = "urn:test:sensors:weather:nexrad";
 
 	NexradOutput dataInterface;
@@ -86,20 +86,17 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		if(!queueActive)
 			return;
 		queueIdleTime = System.currentTimeMillis();
-		System.err.println("QueueIT set to " + queueIdleTime);
 	}
 
 	class CheckQueueStatus extends TimerTask {
 
 		@Override
 		public void run() {
-			System.err.println("Check queue.  QueueActive = " + queueActive);
+			logger.debug("Check queue.  QueueActive = {}" , queueActive);
 			if(!queueActive)
 				return;
-			long it = System.currentTimeMillis() - queueIdleTime;
-			System.err.println(queueIdleTime + ":  " + it + " >= " + QUEUE_IDLE_TIME_THRESHOLD);
 			if(System.currentTimeMillis() - queueIdleTime > QUEUE_IDLE_TIME_THRESHOLD) {
-				System.err.println("Check Queue. Stopping unu sed queue... ");
+				logger.debug("Check Queue. Stopping unused queue... ");
 				nexradSqs.stop();
 				queueActive = false;
 			}
@@ -139,7 +136,6 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 			{
 				String name = "site_" + siteId;
 				String href = SITE_UID_PREFIX + "_" + siteId;
-				System.err.println("NexradSensorURL: " + href);
 				((PhysicalSystem)sensorDescription).getComponentList().add(name, href, null);
 			}
 		}
@@ -183,7 +179,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 
 		}
 
-		// start measurement stream
+		// start receiving files- need to wire this into the requests somehow to turn on and off sites
 		try {
 			ldmFilesProvider = new LdmFilesProvider(Paths.get(config.rootFolder, config.siteIds.get(0)));
 		} catch (IOException e) {
@@ -212,7 +208,6 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		// stop watching the dir
 		dataInterface.stop();
 		// delete the Amazaon Queue or it will keep collecting messages
-		//        System.err.println("STOP");
 		if(queueActive)
 			nexradSqs.stop();  
 	}

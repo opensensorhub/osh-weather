@@ -31,6 +31,7 @@ import net.opengis.swe.v20.DataType;
 import net.opengis.swe.v20.Quantity;
 import net.opengis.swe.v20.Time;
 
+import org.joda.time.DateTime;
 import org.sensorhub.api.sensor.SensorDataEvent;
 import org.sensorhub.impl.common.BasicEventHandler;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
@@ -51,7 +52,7 @@ import org.vast.swe.SWEHelper;
 
 public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 {
-	private static final Logger log = LoggerFactory.getLogger(NexradOutput.class);
+	private static final Logger logger = LoggerFactory.getLogger(NexradOutput.class);
 	DataComponent nexradStruct;
 	DataBlock latestRecord;
 	DataEncoding encoding;
@@ -166,8 +167,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 				{
 					try {
 						Path p = ldmFilesProvider.nextFile();
-						log.debug("Reading {}" , p.toString());
-						System.err.println("Reading " + p.toString());
+						logger.debug("Reading {}" , p.toString());
 						LdmLevel2Reader reader = new LdmLevel2Reader();
 						List<LdmRadial> radials = reader.read(p.toFile());
 						if(radials == null) {
@@ -176,7 +176,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 						sendRadials(radials);
 					} catch (IOException e) {
 						e.printStackTrace(System.err);
-						log.error(e.getMessage());
+						logger.error(e.getMessage());
 						continue;
 					}
 				}
@@ -240,7 +240,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			}
 
 			latestRecord = nexradBlock;
-			eventHandler.publishEvent(new SensorDataEvent(System.currentTimeMillis(), NexradOutput.this, nexradBlock));
+			eventHandler.publishEvent(new SensorDataEvent((long)utcTime * 1000L, NexradOutput.this, nexradBlock));
 		}
 	}
 
@@ -330,8 +330,11 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	@Override
 	public long getLatestRecordTime()
 	{
-		if (latestRecord != null)
-			return latestRecord.getLongValue(0);
+		if (latestRecord != null) {
+			long t = latestRecord.getLongValue(0);
+			DateTime dt = new DateTime(t*1000);
+			return latestRecord.getLongValue(0) * 1000;
+		}
 
 		return 0;
 	}
@@ -341,7 +344,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		@Override
 		public void run() {
 			int numListeners = ((BasicEventHandler)eventHandler).getNumListeners();
-			System.err.println("CheckNumListeners = " + numListeners);
+			logger.debug("CheckNumListeners = {}",numListeners);
 			if (numListeners > 0) { 
 				nexradSensor.setQueueActive();
 				noListeners = true;
