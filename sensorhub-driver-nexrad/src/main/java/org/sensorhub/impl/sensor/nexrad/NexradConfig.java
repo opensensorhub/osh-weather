@@ -35,7 +35,8 @@ public class NexradConfig extends SensorConfig
 	@DisplayInfo(desc="Path to incoming Nexrad Files")
     public String rootFolder;
 	public Path siteFolder;
-//	public long keepAliveTimeMs = ;
+	public int numThreads;
+	public long keepAliveTimeMs; // todo
 
 	public NexradSite site;  // 
 	

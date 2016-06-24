@@ -76,7 +76,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 
 	public void setQueueActive() {
 		if(!queueActive) {
-			nexradSqs = new NexradSqsService(config.siteIds);
+			nexradSqs = new NexradSqsService(config.siteIds, config.rootFolder, config.numThreads);
 			nexradSqs.start();
 			queueActive = true;
 		} 
