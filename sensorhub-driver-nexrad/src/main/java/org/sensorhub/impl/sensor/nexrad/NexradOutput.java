@@ -167,7 +167,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 				{
 					try {
 						Path p = ldmFilesProvider.nextFile();
-						logger.debug("Reading {}" , p.toString());
+						logger.debug("Not Reading {}" , p.toString());
 						LdmLevel2Reader reader = new LdmLevel2Reader();
 						List<LdmRadial> radials = reader.read(p.toFile());
 						if(radials == null) {
