@@ -167,10 +167,10 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 				{
 					try {
 						Path p = ldmFilesProvider.nextFile();
-						logger.debug("Not Reading {}" , p.toString());
+						logger.debug("Reading {}" , p.toString());
 						LdmLevel2Reader reader = new LdmLevel2Reader();
 						List<LdmRadial> radials = reader.read(p.toFile());
-						if(radials == null) {
+						if(radials == null) { 
 							continue;
 						}
 						sendRadials(radials);
@@ -194,10 +194,12 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			DataArray swArr = (DataArray)nexradStruct.getComponent(7);
 			//
 			//			
-			MomentDataBlock momentData = radial.momentData.get(0);
-			refArr.updateSize(momentData.numGates);
-			velArr.updateSize(momentData.numGates);
-			swArr.updateSize(momentData.numGates);
+			MomentDataBlock refMomentData = radial.momentData.get(0);
+			MomentDataBlock velMomentData = radial.momentData.get(1);
+			MomentDataBlock swMomentData = radial.momentData.get(2);
+			refArr.updateSize(refMomentData.numGates);
+			velArr.updateSize(velMomentData.numGates);
+			swArr.updateSize(swMomentData.numGates);
 			DataBlock nexradBlock = nexradStruct.createDataBlock();
 
 			long days = radial.dataHeader.daysSince1970;
@@ -211,7 +213,8 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			nexradBlock.setDoubleValue(2, radial.dataHeader.elevationAngle);
 			nexradBlock.setDoubleValue(3, radial.dataHeader.azimuthAngle);
 
-			nexradBlock.setIntValue(4, momentData.numGates);
+			// Todo: update structure to include separate numGates for ref,vel,sw
+			nexradBlock.setIntValue(4, refMomentData.numGates);
 
 			int blockCnt = 0;
 			for(MomentDataBlock data: radial.momentData) {
@@ -236,7 +239,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 				if(blockCnt == 3)  break;
 			}
 			if(blockCnt < 3) {
-				//  we're missing a product, but doesn't break the publishing at least
+				//  we're missing a product, but shouldn't break the publishing at least
 			}
 
 			latestRecord = nexradBlock;

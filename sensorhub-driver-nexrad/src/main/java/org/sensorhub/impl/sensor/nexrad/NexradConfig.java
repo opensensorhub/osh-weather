@@ -36,7 +36,8 @@ public class NexradConfig extends SensorConfig
     public String rootFolder;
 	public Path siteFolder;
 	public int numThreads;
-	public long keepAliveTimeMs; // todo
+	public long queueIdleTimeMinutes = 240;
+	public String queueName = "NexradQueue_SensorHub_001";  // default name
 
 	public NexradSite site;  // 
 	

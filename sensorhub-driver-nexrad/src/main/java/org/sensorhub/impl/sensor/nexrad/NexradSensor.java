@@ -64,8 +64,8 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 
 	long queueIdleTime;
 	boolean queueActive = false;
-	static final long QUEUE_IDLE_TIME_THRESHOLD = TimeUnit.MINUTES.toMillis(20);
 	static final long QUEUE_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(1);
+	long queueIdleTimeMillis;
 
 	public NexradSensor()
 	{
@@ -76,7 +76,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 
 	public void setQueueActive() {
 		if(!queueActive) {
-			nexradSqs = new NexradSqsService(config.siteIds, config.rootFolder, config.numThreads);
+			nexradSqs = new NexradSqsService(config.queueName, config.siteIds, config.rootFolder, config.numThreads);
 			nexradSqs.start();
 			queueActive = true;
 		} 
@@ -95,7 +95,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 			logger.debug("Check queue.  QueueActive = {}" , queueActive);
 			if(!queueActive)
 				return;
-			if(System.currentTimeMillis() - queueIdleTime > QUEUE_IDLE_TIME_THRESHOLD) {
+			if(System.currentTimeMillis() - queueIdleTime > queueIdleTimeMillis) {
 				logger.debug("Check Queue. Stopping unused queue... ");
 				nexradSqs.stop();
 				queueActive = false;
@@ -108,6 +108,8 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	public void init(NexradConfig config) throws SensorHubException
 	{
 		super.init(config);
+		logger.debug("QueueIdleTimeMinutes: {}", config.queueIdleTimeMinutes);
+		queueIdleTimeMillis = TimeUnit.MINUTES.toMillis(config.queueIdleTimeMinutes);
 		queueIdleTime = System.currentTimeMillis();
 		setQueueActive();
 		
