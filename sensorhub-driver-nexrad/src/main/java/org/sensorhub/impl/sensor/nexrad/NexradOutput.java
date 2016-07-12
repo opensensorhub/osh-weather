@@ -114,18 +114,27 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		az.setDefinition("http://sensorml.com/ont/swe/property/AzimuthAngle");
 		nexradStruct.addComponent("azimuth",az);
 
-		Count numBins = fac.newCount(DataType.INT);
-		numBins.setDefinition("http://sensorml.com/ont/swe/property/NumberOfSamples"); 
-		numBins.setId("NUM_BINS");
-		//		numBins.setValue(NUM_BINS);  
-		nexradStruct.addComponent("count",numBins);
+		Count numReflBins = fac.newCount(DataType.INT);
+		numReflBins.setDefinition("http://sensorml.com/ont/swe/property/NumberOfSamples"); 
+		numReflBins.setId("NUM_REFL_BINS");
+		nexradStruct.addComponent("numReflBins",numReflBins);
+
+		Count numVelBins = fac.newCount(DataType.INT);
+		numVelBins.setDefinition("http://sensorml.com/ont/swe/property/NumberOfSamples"); 
+		numVelBins.setId("NUM_VELL_BINS");
+		nexradStruct.addComponent("numVelBins",numVelBins);
+
+		Count numSwBins = fac.newCount(DataType.INT);
+		numSwBins.setDefinition("http://sensorml.com/ont/swe/property/NumberOfSamples"); 
+		numSwBins.setId("NUM_SW_BINS");
+		nexradStruct.addComponent("numSwBins",numSwBins);
 
 		Quantity reflQuant = fac.newQuantity(DataType.FLOAT);
 		reflQuant.setDefinition("http://sensorml.com/ont/swe/propertyx/Reflectivity");  // does not exist- will be reflectivity,velocity,or spectrumWidth- choice here?
 		reflQuant.getUom().setCode("db");
 		DataArray reflData = fac.newDataArray();
 		reflData.setElementType("Reflectivity", reflQuant);
-		reflData.setElementCount(numBins); //  alex adding support for this
+		reflData.setElementCount(numReflBins); //  alex adding support for this
 		nexradStruct.addComponent("Reflectivity", reflData);
 
 		Quantity velQuant = fac.newQuantity(DataType.FLOAT);
@@ -133,7 +142,8 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		velQuant.getUom().setCode("m/s");
 		DataArray velData = fac.newDataArray();
 		velData.setElementType("Velocity", velQuant);
-		velData.setElementCount(numBins); 
+		//		velData.setElementCount(numVelBins); 
+		velData.setElementCount(numVelBins); 
 		nexradStruct.addComponent("Velocity", velData);
 
 		Quantity swQuant = fac.newQuantity(DataType.FLOAT);
@@ -141,7 +151,8 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		swQuant.getUom().setCode("1"); // ? or db
 		DataArray swData = fac.newDataArray();
 		swData.setElementType("SpectrumWidth", swQuant);
-		swData.setElementCount(numBins); 
+		//		swData.setElementCount(numSwBins); 
+		swData.setElementCount(numSwBins); 
 		nexradStruct.addComponent("SpectrumWidth", swData);
 
 		//		encoding = SWEHelper.getDefaultBinaryEncoding(nexradStruct);
@@ -189,58 +200,100 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	{
 		for(LdmRadial radial: radials) {
 			//			// build and publish datablock
-			DataArray refArr = (DataArray)nexradStruct.getComponent(5);
-			DataArray velArr = (DataArray)nexradStruct.getComponent(6);
-			DataArray swArr = (DataArray)nexradStruct.getComponent(7);
+			DataArray refArr = (DataArray)nexradStruct.getComponent(7);
+			DataArray velArr = (DataArray)nexradStruct.getComponent(8);
+			DataArray swArr = (DataArray)nexradStruct.getComponent(9);
 			//
 			//			
-			MomentDataBlock refMomentData = radial.momentData.get(0);
-			MomentDataBlock velMomentData = radial.momentData.get(1);
-			MomentDataBlock swMomentData = radial.momentData.get(2);
-			refArr.updateSize(refMomentData.numGates);
-			velArr.updateSize(velMomentData.numGates);
-			swArr.updateSize(swMomentData.numGates);
+			MomentDataBlock refMomentData = radial.momentData.get("REF");
+			MomentDataBlock velMomentData = radial.momentData.get("VEL");
+			MomentDataBlock swMomentData = radial.momentData.get("SW");
+			if(refMomentData == null)
+				refArr.updateSize(1);
+			else
+				refArr.updateSize(refMomentData.numGates);
+
+			if(velMomentData == null)
+				velArr.updateSize(1);
+			else
+				velArr.updateSize(velMomentData.numGates);
+			if(swMomentData == null)
+				swArr.updateSize(1);
+			else
+				swArr.updateSize(swMomentData.numGates);
 			DataBlock nexradBlock = nexradStruct.createDataBlock();
 
 			long days = radial.dataHeader.daysSince1970;
 			long ms = radial.dataHeader.msSinceMidnight;
 			double utcTime = (double)(AwsNexradUtil.toJulianTime(days, ms)/1000.);
-
-
-			//			nexradBlock.setStringValue(0, radial.dataHeader.siteId);
 			nexradBlock.setDoubleValue(0, utcTime);
 			nexradBlock.setStringValue(1, radial.dataHeader.siteId);
 			nexradBlock.setDoubleValue(2, radial.dataHeader.elevationAngle);
 			nexradBlock.setDoubleValue(3, radial.dataHeader.azimuthAngle);
 
 			// Todo: update structure to include separate numGates for ref,vel,sw
-			nexradBlock.setIntValue(4, refMomentData.numGates);
+			float [] f = new float[1];
+			if(refMomentData != null) {
+				nexradBlock.setIntValue(4, refMomentData.numGates);
+			} else {
+				nexradBlock.setIntValue(4, 1);
+			}
+			if(velMomentData != null) {
+				nexradBlock.setIntValue(5, velMomentData.numGates);
+			} else {
+				nexradBlock.setIntValue(5, 1);
+			}
+			if(swMomentData != null) {
+				nexradBlock.setIntValue(6, swMomentData.numGates);
+			} else {
+				nexradBlock.setIntValue(6, 1);
+			}
+			
+			if(refMomentData != null) {
+				((DataBlockMixed)nexradBlock).getUnderlyingObject()[7].setUnderlyingObject(refMomentData.getData());
+			} else {
+				((DataBlockMixed)nexradBlock).getUnderlyingObject()[7].setUnderlyingObject(f);
+			}
+			if(velMomentData != null) {
+				((DataBlockMixed)nexradBlock).getUnderlyingObject()[8].setUnderlyingObject(velMomentData.getData());
+			} else {
+				((DataBlockMixed)nexradBlock).getUnderlyingObject()[8].setUnderlyingObject(f);
+			}
 
-			int blockCnt = 0;
-			for(MomentDataBlock data: radial.momentData) {
-				int blockIdx;
-				switch(data.blockName) {
-				case "REF":
-					((DataBlockMixed)nexradBlock).getUnderlyingObject()[5].setUnderlyingObject(data.getData());
-					blockCnt++;
-					break;
-				case "VEL":
-					((DataBlockMixed)nexradBlock).getUnderlyingObject()[6].setUnderlyingObject(data.getData());
-					blockCnt++;
-					break;
-				case "SW":
-					((DataBlockMixed)nexradBlock).getUnderlyingObject()[7].setUnderlyingObject(data.getData());
-					blockCnt++;
-					break;
-				default:
-					// PHI/RHO/ZDR - may support these later
-					break;
-				}
-				if(blockCnt == 3)  break;
+			if(swMomentData != null) {
+				((DataBlockMixed)nexradBlock).getUnderlyingObject()[9].setUnderlyingObject(swMomentData.getData());
+			} else {
+				((DataBlockMixed)nexradBlock).getUnderlyingObject()[9].setUnderlyingObject(f);
 			}
-			if(blockCnt < 3) {
-				//  we're missing a product, but shouldn't break the publishing at least
-			}
+
+			//System.out.printf("r,v,s: %d,%d,%d\n", refMomentData.numGates, velMomentData.numGates, swMomentData.numGates);
+
+			//			int blockCnt = 0;
+			//			for(MomentDataBlock data: radial.momentData) {
+			//				int blockIdx;
+			//				System.out.println(data.blockName + ": " + data.getData().length);
+			//				switch(data.blockName) {
+			//				case "REF":
+			//					((DataBlockMixed)nexradBlock).getUnderlyingObject()[7].setUnderlyingObject(data.getData());
+			//					blockCnt++;
+			//					break;
+			//				case "VEL":
+			//					((DataBlockMixed)nexradBlock).getUnderlyingObject()[8].setUnderlyingObject(data.getData());
+			//					blockCnt++;
+			//					break;
+			//				case "SW":
+			//					((DataBlockMixed)nexradBlock).getUnderlyingObject()[9].setUnderlyingObject(data.getData());
+			//					blockCnt++;
+			//					break;
+			//				default:
+			//					// PHI/RHO/ZDR - may support these later
+			//					break;
+			//				}
+			//				if(blockCnt == 3)  break;
+			//			}
+			//			if(blockCnt < 3) {
+			//				//  we're missing a product, but shouldn't break the publishing at least
+			//			}
 
 			latestRecord = nexradBlock;
 			eventHandler.publishEvent(new SensorDataEvent((long)utcTime * 1000L, NexradOutput.this, nexradBlock));
@@ -356,7 +409,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 					nexradSensor.setQueueIdle();
 					noListeners = true;
 				}
-					
+
 			}
 
 		}
