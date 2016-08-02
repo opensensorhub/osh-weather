@@ -19,8 +19,8 @@ public class MeteobridgeSensor extends AbstractSensorModule<MeteobridgeConfig>{
 	
 	public MeteobridgeSensor() {}	// blank constructor
 	
-	public void init(MeteobridgeConfig config) throws SensorHubException {
-		super.init(config);
+	public void init() throws SensorHubException {
+		super.init();
 		
 		dataInterface = new MeteobridgeOutput(this);
 		addOutput(dataInterface, false);

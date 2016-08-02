@@ -22,8 +22,8 @@ public class HttpWeatherSensor extends AbstractSensorModule<HttpWeatherConfig> {
 	
 	public HttpWeatherSensor() {}
 	
-	public void init(HttpWeatherConfig config) throws SensorHubException {
-		super.init(config);
+	public void init() throws SensorHubException {
+		super.init();
 		dataInterface = new HttpWeatherOutput(this);
 		addOutput(dataInterface, false);
 		dataInterface.init();
