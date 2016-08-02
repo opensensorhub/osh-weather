@@ -38,7 +38,7 @@ public class NexradConfig extends SensorConfig
 	public int numThreads;
 	public String queueName = "NexradQueue_SensorHub_001";  // default name
 	public long queueIdleTimeMinutes = 240;
-	public int queueFileLimit = 18;  // number of files in the disk queue to accumulate before forcing older files out 
+	public int queueFileLimit = 8;  // number of files in the disk queue to accumulate before forcing older files out 
 	
 	public NexradSite site;  // 
 	

@@ -39,6 +39,7 @@ import org.sensorhub.impl.sensor.nexrad.aws.AwsNexradUtil;
 import org.sensorhub.impl.sensor.nexrad.aws.LdmLevel2Reader;
 import org.sensorhub.impl.sensor.nexrad.aws.LdmRadial;
 import org.sensorhub.impl.sensor.nexrad.aws.MomentDataBlock;
+import org.sensorhub.impl.sensor.nexrad.aws.sqs.ChunkPathQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.data.DataBlockMixed;
@@ -68,10 +69,13 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	DataEncoding encoding;
 	boolean sendData;
 	Timer timer;	
-	LdmFilesProvider ldmFilesProvider;
 	InputStream is;
 	int numListeners;
 	NexradSensor nexradSensor;
+	LdmFilesProvider ldmFilesProvider;
+	ChunkPathQueue chunkQueue;
+
+	
 	//  Listener Check needed to know if anyone is receiving events to know when to delete the AWS queue
 	static final long LISTENER_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(1); 
 
@@ -211,7 +215,42 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		encoding = fac.newTextEncoding();
 	}
 
+	protected void start(ChunkPathQueue provider)
+	{
+		if (sendData)
+			return;
 
+		sendData = true;
+
+		chunkQueue = provider;
+
+		// start main measurement thread
+		Thread t = new Thread(new Runnable()
+		{
+			public void run()
+			{
+				while (sendData)
+				{
+					try {
+						Path p = chunkQueue.nextFile();
+						logger.debug("Reading {}" , p.toString());
+						LdmLevel2Reader reader = new LdmLevel2Reader();
+						List<LdmRadial> radials = reader.read(p.toFile());
+						if(radials == null) { 
+							continue;
+						}
+						sendRadials(radials);
+					} catch (IOException e) {
+						e.printStackTrace(System.err);
+						logger.error(e.getMessage());
+						continue;
+					}
+				}
+			}
+		});
+		t.start();
+	}
+	
 	protected void start(LdmFilesProvider provider)
 	{
 		if (sendData)
@@ -232,7 +271,10 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 						Path p = ldmFilesProvider.nextFile();
 						logger.debug("Reading {}" , p.toString());
 						LdmLevel2Reader reader = new LdmLevel2Reader();
+						long t1 = System.currentTimeMillis();
 						List<LdmRadial> radials = reader.read(p.toFile());
+						long t2 = System.currentTimeMillis();
+						System.out.println("Took " + (t2 - t1));
 						if(radials == null) { 
 							continue;
 						}
@@ -470,7 +512,12 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			int numListeners = ((BasicEventHandler)eventHandler).getNumListeners();
 			logger.debug("CheckNumListeners = {}",numListeners);
 			if (numListeners > 0) { 
-				nexradSensor.setQueueActive();
+				try {
+					nexradSensor.setQueueActive();
+				} catch (IOException e) {
+					//  What should happen in this case? We can't proceed 
+					e.printStackTrace();
+				}
 				noListeners = true;
 			}else {
 				if(!noListeners) { 

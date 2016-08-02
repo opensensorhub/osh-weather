@@ -36,6 +36,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.impl.sensor.AbstractSensorModule;
 import org.sensorhub.impl.sensor.nexrad.aws.NexradSqsService;
+import org.sensorhub.impl.sensor.nexrad.aws.sqs.ChunkPathQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.sensorML.SMLHelper;
@@ -55,7 +56,8 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 
 	NexradOutput dataInterface;
 	//	ICommProvider<? super CommConfig> commProvider;
-	LdmFilesProvider ldmFilesProvider;
+//	LdmFilesProvider ldmFilesProvider;
+	ChunkPathQueue chunkQueue;
 	private NexradSqsService nexradSqs;
 
 	Set<String> foiIDs;
@@ -67,16 +69,20 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	static final long QUEUE_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(1);
 	long queueIdleTimeMillis;
 
-	public NexradSensor()
+	public NexradSensor() throws SensorHubException
 	{
 		this.foiIDs = new LinkedHashSet<String>();
 		this.siteFois = new LinkedHashMap<String, PhysicalSystem>();
 		this.siteDescs = new LinkedHashMap<String, PhysicalSystem>();
+		// start receiving files- need to wire this into the requests somehow to turn on and off sites
 	}
 
-	public void setQueueActive() {
+	public void setQueueActive() throws IOException {
 		if(!queueActive) {
-			nexradSqs = new NexradSqsService(config.queueName, config.siteIds, config.rootFolder, config.numThreads);
+			nexradSqs = new NexradSqsService(config.queueName, config.siteIds);
+			nexradSqs.setNumThreads(config.numThreads);
+			nexradSqs.setChunkQueue(chunkQueue);  // 
+			chunkQueue.setS3client(nexradSqs.getS3client());  //
 			nexradSqs.start();
 			queueActive = true;
 		} 
@@ -108,10 +114,22 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	public void init(NexradConfig config) throws SensorHubException
 	{
 		super.init(config);
+		try {
+//			ldmFilesProvider = new LdmFilesProvider(Paths.get(config.rootFolder, config.siteIds.get(0)));
+			chunkQueue = new ChunkPathQueue(Paths.get(config.rootFolder, config.siteIds.get(0)));
+		} catch (IOException e) {
+			throw new SensorHubException(e.getMessage(), e);
+		}
+
+		
 		logger.debug("QueueIdleTimeMinutes: {}", config.queueIdleTimeMinutes);
 		queueIdleTimeMillis = TimeUnit.MINUTES.toMillis(config.queueIdleTimeMinutes);
 		queueIdleTime = System.currentTimeMillis();
-		setQueueActive();
+		try {
+			setQueueActive();
+		} catch (IOException e) {
+			throw new SensorHubException(e.getMessage());
+		}
 		
 		Timer queueTimer = new Timer();  //At this line a new Thread will be created
 	    queueTimer.scheduleAtFixedRate(new CheckQueueStatus(), 0, QUEUE_CHECK_INTERVAL); //delay in milliseconds
@@ -181,14 +199,9 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 
 		}
 
-		// start receiving files- need to wire this into the requests somehow to turn on and off sites
-		try {
-			ldmFilesProvider = new LdmFilesProvider(Paths.get(config.rootFolder, config.siteIds.get(0)));
-		} catch (IOException e) {
-			throw new SensorHubException(e.getMessage(), e);
-		}
-		ldmFilesProvider.start();
-		dataInterface.start(ldmFilesProvider); 
+//		ldmFilesProvider.start();
+//		dataInterface.start(ldmFilesProvider); 
+		dataInterface.start(chunkQueue); 
 
 
 
@@ -207,7 +220,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	@Override
 	public void stop() throws SensorHubException
 	{
-		// stop watching the dir
+		// stop taking Paths off the queue
 		dataInterface.stop();
 		// delete the Amazaon Queue or it will keep collecting messages
 		if(queueActive)
