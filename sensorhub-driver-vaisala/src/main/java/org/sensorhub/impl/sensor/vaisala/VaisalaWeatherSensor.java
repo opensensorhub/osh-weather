@@ -27,6 +27,8 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
     String modelNumber;
     String serialNumber = null;
     String inputLine = null;
+    String deviceAddress = null;
+    String[] checkAddr = null;
     public final static char CR = (char) 0x0D;
     public final static char LF = (char) 0x0A;
     public final static String CRLF = "" + CR + LF;
@@ -49,8 +51,8 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
     /*****************************************************************/
     
     /******************** Settings Messages **************************/
-    private String commsSettingsInit = "A=0,M=P,T=0,C=2,I=0,B=19200";
-    private String commsSettingsAutoASCII = "A=0,M=A,I=1";
+    private String commsSettingsInit = "M=P,T=0,C=2,I=0,B=19200";
+    private String commsSettingsAutoASCII = "M=A,I=1";
     
     private String supervisorSettings1 = "R=0000000011100000";
     private String supervisorSettings2 = "I=15,S=N,H=Y";
@@ -61,6 +63,157 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
     private String precipSettings1 = "R=0000000010110111";
     private String precipSettings2 = "I=60,U=I,S=I,M=T,Z=A";
     /*****************************************************************/
+    
+    /******************* Wind Measurements Flags *********************/
+    private boolean Dn; // Direction Minimum
+    private boolean Dm; // Direction Average
+    private boolean Dx; // Direction Maximum
+    private boolean Sn; // Speed Minimum
+    private boolean Sm; // Speed Average
+    private boolean Sx; // Speed Maximum
+    
+    public boolean getDn()
+    {
+    	return this.Dn;
+    }
+    
+    public boolean getDm()
+    {
+    	return this.Dm;
+    }
+    
+    public boolean getDx()
+    {
+    	return this.Dx;
+    }
+    
+    public boolean getSn()
+    {
+    	return this.Sn;
+    }
+    
+    public boolean getSm()
+    {
+    	return this.Sm;
+    }
+    
+    public boolean getSx()
+    {
+    	return this.Sx;
+    }
+    /*****************************************************************/
+    
+    /******************** PTU Measurements Flags *********************/
+    private boolean Pa; // Air Pressure
+    private boolean Ta; // Air Temperature
+    private boolean Tp; // Internal Temperature
+    private boolean Ua; // Air Humidity
+    
+    public boolean getPa()
+    {
+    	return this.Pa;
+    }
+    
+    public boolean getTa()
+    {
+    	return this.Ta;
+    }
+    
+    public boolean getTp()
+    {
+    	return this.Tp;
+    }
+    
+    public boolean getUa()
+    {
+    	return this.Ua;
+    }
+    /*****************************************************************/
+    
+    /****************** Precip Measurements Flags ********************/
+    private boolean Rc; // Rain Amount
+    private boolean Rd; // Rain Duration
+    private boolean Ri; // Rain Intensity
+    private boolean Hc; // Hail Amount
+    private boolean Hd; // Hail Duration
+    private boolean Hi; // Hail Intensity
+    private boolean Rp; // Rain Peak
+    private boolean Hp; // Hail Peak
+    
+    public boolean getRc()
+    {
+    	return this.Rc;
+    }
+    
+    public boolean getRd()
+    {
+    	return this.Rd;
+    }
+    
+    public boolean getRi()
+    {
+    	return this.Ri;
+    }
+    
+    public boolean getHc()
+    {
+    	return this.Hc;
+    }
+    
+    public boolean getHd()
+    {
+    	return this.Hd;
+    }
+    
+    public boolean getHi()
+    {
+    	return this.Hi;
+    }
+    
+    public boolean getRp()
+    {
+    	return this.Rp;
+    }
+    
+    public boolean getHp()
+    {
+    	return this.Hp;
+    }
+    /*****************************************************************/
+    
+    /**************** Supervisor Measurements Flags ******************/
+    private boolean Th; // Heating Temperature
+    private boolean Vh; // Heating Voltage
+    private boolean Vs; // Supply Voltage
+    private boolean Vr; // Reference Voltage
+    private boolean Id; // Information Field
+    
+    public boolean getTh()
+    {
+    	return this.Th;
+    }
+    
+    public boolean getVh()
+    {
+    	return this.Vh;
+    }
+    
+    public boolean getVs()
+    {
+    	return this.Vs;
+    }
+    
+    public boolean getVr()
+    {
+    	return this.Vr;
+    }
+    
+    public boolean getId()
+    {
+    	return this.Id;
+    }
+    /*****************************************************************/
+    
     
     public VaisalaWeatherSensor()
     {        
@@ -92,11 +245,10 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
             	dataIn = new BufferedReader(new InputStreamReader(commProvider.getInputStream()));
                 dataOut = new BufferedWriter(new OutputStreamWriter(commProvider.getOutputStream()));
                 getLogger().info("Connected to Vaisala data stream");
+
                 
-                
-                /******** Configure Comm Protocol to ASCII Poll ********/
-                dataOut.flush();
-                dataOut.write("0XU," + commsSettingsInit + CRLF);
+                /************************* Get Device Address *************************/
+                dataOut.write("?" + CRLF);
                 dataOut.flush();
                 try {
 					Thread.sleep(1000);
@@ -104,13 +256,52 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+                
+                // get line and split to check its length
                 inputLine = dataIn.readLine();
+                checkAddr = inputLine.split(",");
+                
+                // if input line length is other than 1,
+                // it must be an automatic data message.
+                // so keep getting lines until length = 1
+                while (checkAddr.length != 1)
+                {
+                	inputLine = dataIn.readLine();
+                	checkAddr = inputLine.split(",");
+                }
+                
+                // save dataAddress to use in commands
+                deviceAddress = inputLine;
+                System.out.println("Device Address = " + deviceAddress);
                 inputLine = null;
-                /*******************************************************/
+                /***********************************************************************/
                 
                 
-                /******************** Get Model Number *****************/
-                dataOut.write("0XU" + CRLF);
+                /***************** Configure Comm Protocol to ASCII Poll ***************/
+                dataOut.write(deviceAddress + "XU," + commsSettingsInit + CRLF);
+                dataOut.flush();
+                try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+                
+                // get input lines until pipe is clear, indicating polling mode is on 
+                inputLine = dataIn.readLine();
+                
+                // need dataIn.ready() = false to ensure polling mode is on 
+                while(dataIn.ready())
+                {
+                	inputLine = dataIn.readLine();
+                }
+                // should be in polling mode at this point
+                inputLine = null;
+                /***********************************************************************/
+                
+                
+                /**************************** Get Model Number *************************/
+                dataOut.write(deviceAddress + "XU" + CRLF);
                 dataOut.flush();
                 try {
 					Thread.sleep(1000);
@@ -122,11 +313,11 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 String[] split = inputLine.split(",");
                 modelNumber = split[11].replaceAll("N=", "");
                 inputLine = null;
-                /*******************************************************/
+                /***********************************************************************/
                 
                 
-                /************ Configure Supervisor Settings ************/
-                dataOut.write("0SU," + supervisorSettings1 + CRLF);
+                /******************** Configure Supervisor Settings ********************/
+                dataOut.write(deviceAddress + "SU," + supervisorSettings1 + CRLF);
                 dataOut.flush();
                 try {
 					Thread.sleep(1000);
@@ -137,7 +328,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 inputLine = dataIn.readLine();
                 inputLine = null;
                 
-                dataOut.write("0SU," + supervisorSettings2 + CRLF);
+                dataOut.write(deviceAddress + "SU," + supervisorSettings2 + CRLF);
                 dataOut.flush();
                 try {
 					Thread.sleep(1000);
@@ -147,36 +338,11 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 				}
                 inputLine = dataIn.readLine();
                 inputLine = null;
-                /*******************************************************/
+                /***********************************************************************/
                 
                 
-                /*************** Configure Wind Settings ***************/
-                dataOut.write("0WU," + windSettings1 + CRLF);
-                dataOut.flush();
-                try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-                inputLine = dataIn.readLine();
-                inputLine = null;
-                
-                dataOut.write("0WU," + windSettings2 + CRLF);
-                dataOut.flush();
-                try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-                inputLine = dataIn.readLine();
-                inputLine = null;
-                /*******************************************************/
-                
-                
-                /*************** Configure PTU Settings ****************/
-                dataOut.write("0TU," + ptuSettings1 + CRLF);
+                /************************ Configure Wind Settings **********************/
+                dataOut.write(deviceAddress + "WU," + windSettings1 + CRLF);
                 dataOut.flush();
                 try {
 					Thread.sleep(1000);
@@ -187,7 +353,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 inputLine = dataIn.readLine();
                 inputLine = null;
                 
-                dataOut.write("0TU," + ptuSettings2 + CRLF);
+                dataOut.write(deviceAddress + "WU," + windSettings2 + CRLF);
                 dataOut.flush();
                 try {
 					Thread.sleep(1000);
@@ -197,11 +363,11 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 				}
                 inputLine = dataIn.readLine();
                 inputLine = null;
-                /*******************************************************/
+                /************************************************************************/
                 
                 
-                /************* Configure Precip Settings ***************/
-                dataOut.write("0RU," + precipSettings1 + CRLF);
+                /************************ Configure PTU Settings ************************/
+                dataOut.write(deviceAddress + "TU," + ptuSettings1 + CRLF);
                 dataOut.flush();
                 try {
 					Thread.sleep(1000);
@@ -212,7 +378,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 inputLine = dataIn.readLine();
                 inputLine = null;
                 
-                dataOut.write("0RU," + precipSettings2 + CRLF);
+                dataOut.write(deviceAddress + "TU," + ptuSettings2 + CRLF);
                 dataOut.flush();
                 try {
 					Thread.sleep(1000);
@@ -222,11 +388,11 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 				}
                 inputLine = dataIn.readLine();
                 inputLine = null;
-                /*******************************************************/
+                /***********************************************************************/
                 
                 
-                /********* Configure Comm Protocol to Auto ASCII *******/
-                dataOut.write("0XU," + commsSettingsAutoASCII + CRLF);
+                /************************ Configure Precip Settings ********************/
+                dataOut.write(deviceAddress + "RU," + precipSettings1 + CRLF);
                 dataOut.flush();
                 try {
 					Thread.sleep(1000);
@@ -236,7 +402,32 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 				}
                 inputLine = dataIn.readLine();
                 inputLine = null;
-                /*******************************************************/
+                
+                dataOut.write(deviceAddress + "RU," + precipSettings2 + CRLF);
+                dataOut.flush();
+                try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+                inputLine = dataIn.readLine();
+                inputLine = null;
+                /***********************************************************************/
+                
+                
+                /***************** Configure Comm Protocol to Auto ASCII ***************/
+                dataOut.write(deviceAddress + "XU," + commsSettingsAutoASCII + CRLF);
+                dataOut.flush();
+                try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+                inputLine = dataIn.readLine();
+                inputLine = null;
+                /***********************************************************************/
                 
             }
             catch (IOException e)
