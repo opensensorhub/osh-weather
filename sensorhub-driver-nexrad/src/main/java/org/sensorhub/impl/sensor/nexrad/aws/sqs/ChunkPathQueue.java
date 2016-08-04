@@ -39,20 +39,11 @@ public class ChunkPathQueue
 	static final int START_SIZE = 3;
 	static final int SIZE_LIMIT = 12;
 	
-//	public ChunkPathQueue(AmazonS3Client s3client, Path dataFolder) throws IOException {
 	public ChunkPathQueue(Path dataFolder) throws IOException {
-//		this.s3client = s3client;
 		this.siteFolder = dataFolder;
 		//  Make sure the target folder exists
 		FileUtils.forceMkdir(this.siteFolder.toFile());
 		queue = new PriorityBlockingQueue<>();
-//		while (queue.size() < START_SIZE) {
-//			try {
-//				Thread.sleep(200L);
-//			} catch (InterruptedException e) {
-//				e.printStackTrace();
-//			}
-//		}
 	}
 
 	public void add(String chunkPath) {
@@ -104,7 +95,6 @@ public class ChunkPathQueue
 			String chunkName = queue.peek();
 			if(chunkName == null)
 				continue;
-			//			System.err.println("Peek that: " + f);
 			String [] sarr = chunkName.split("/");
 			int v = Integer.parseInt(sarr[1]);
 			int dashIdx = chunkName.lastIndexOf('-');
@@ -141,6 +131,8 @@ public class ChunkPathQueue
 			nextFile = nextFile.replaceAll("/", "_");
 
 			Path pout = Paths.get(siteFolder.toString(), nextFile);
+			//  If I thread writing of file, I will have to put in a mechanism to notify the listener (NexradOutput)
+			//  when the file writing is complete.  Right now, I don't think it is needed. 
 			AwsNexradUtil.dumpChunkToFile(chunk, pout);
 			return pout;
 		}

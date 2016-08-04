@@ -56,7 +56,6 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 
 	NexradOutput dataInterface;
 	//	ICommProvider<? super CommConfig> commProvider;
-//	LdmFilesProvider ldmFilesProvider;
 	ChunkPathQueue chunkQueue;
 	private NexradSqsService nexradSqs;
 
@@ -74,13 +73,13 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		this.foiIDs = new LinkedHashSet<String>();
 		this.siteFois = new LinkedHashMap<String, PhysicalSystem>();
 		this.siteDescs = new LinkedHashMap<String, PhysicalSystem>();
-		// start receiving files- need to wire this into the requests somehow to turn on and off sites
 	}
 
 	public void setQueueActive() throws IOException {
 		if(!queueActive) {
 			nexradSqs = new NexradSqsService(config.queueName, config.siteIds);
 			nexradSqs.setNumThreads(config.numThreads);
+			// design issue here in that nexradSqs needs chunkQueue and chunkQueue needs s3client.  
 			nexradSqs.setChunkQueue(chunkQueue);  // 
 			chunkQueue.setS3client(nexradSqs.getS3client());  //
 			nexradSqs.start();
@@ -115,7 +114,6 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	{
 		super.init(config);
 		try {
-//			ldmFilesProvider = new LdmFilesProvider(Paths.get(config.rootFolder, config.siteIds.get(0)));
 			chunkQueue = new ChunkPathQueue(Paths.get(config.rootFolder, config.siteIds.get(0)));
 		} catch (IOException e) {
 			throw new SensorHubException(e.getMessage(), e);
@@ -199,21 +197,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 
 		}
 
-//		ldmFilesProvider.start();
-//		dataInterface.start(ldmFilesProvider); 
 		dataInterface.start(chunkQueue); 
-
-
-
-		//		nexradSqs = new NexradSqsService(config.siteIds.get(0));
-		//		nexradSqs.start();
-		//
-		//		// start measurement stream
-		//		ldmFilesProvider = new LdmFilesProvider(Paths.get(config.rootFolder, config.siteIds.get(0)));
-		//		ldmFilesProvider.start();
-		//		dataInterface.start(ldmFilesProvider); 
-
-
 	}
 
 
