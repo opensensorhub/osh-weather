@@ -4,12 +4,15 @@ import java.io.IOException;
 
 import net.opengis.sensorml.v20.IdentifierList;
 import net.opengis.sensorml.v20.Term;
+import net.opengis.swe.v20.DataBlock;
+import net.opengis.swe.v20.DataComponent;
 
 import org.sensorhub.api.comm.ICommProvider;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.sensor.SensorDataEvent;
 import org.sensorhub.impl.sensor.AbstractSensorModule;
 import org.sensorhub.impl.sensor.vaisala.VaisalaWeatherConfig;
-import org.sensorhub.impl.sensor.vaisala.VaisalaWeatherOutput;
+import org.sensorhub.impl.sensor.vaisala.VaisalaWeatherCompositeOutput;
 import org.vast.sensorML.SMLFactory;
 import org.vast.swe.SWEHelper;
 
@@ -21,34 +24,37 @@ import java.io.OutputStreamWriter;
 public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherConfig>
 { 
     ICommProvider<?> commProvider;
+    DataComponent weatherData;
     BufferedReader dataIn;
     BufferedWriter dataOut;
-    VaisalaWeatherOutput dataInterface;
+    BufferedReader reader;
+    BufferedWriter writer;
+    VaisalaWeatherCompositeOutput dataInterface;
+    VaisalaWeatherCompositeOutput compOut;
+    VaisalaWeatherWindOutput windOut;
+//    VaisalaWeatherPrecipOutput precipOut;
+    VaisalaWeatherPTUOutput ptuOut;
+//    VaisalaWeatherSupOutput supOut;
     String modelNumber;
     String serialNumber = null;
     String inputLine = null;
     String deviceAddress = null;
     String[] checkAddr = null;
+    String[] inputTemp = null;
+    String compSupMesSettings = null;
+    String indSupMesSettings = null;
+    String compWindMesSettings = null;
+    String indWindMesSettings = null;
+    String compPTUMesSettings = null;
+    String indPTUMesSettings = null;
+    String compPrecipMesSettings = null;
+    String indPrecipMesSettings = null;
+    String[] checkMesSettings = null;
+    int cnt;
+    volatile boolean started;
     public final static char CR = (char) 0x0D;
     public final static char LF = (char) 0x0A;
     public final static String CRLF = "" + CR + LF;
-    
-    /***** Constants used for issuing commands - might use later *****/
-//    private static final String queryDeviceAddress = "?";
-//    private static final String resetCommand = "XZ";
-//    
-//    private static final String queryCompositeRecord = "R0";
-//    private static final String queryWindRecord = "R1";
-//    private static final String queryPTURecord = "R2";
-//    private static final String queryPrecipRecord = "R3";
-//    private static final String querySupervisorRecord = "R5";
-//    
-//    private static final String queryCommsSettings = "XU";
-//    private static final String querySupervisorSettings = "SU";
-//    private static final String queryWindSettings = "WU";
-//    private static final String queryPtuSettings = "TU";
-//    private static final String queryPrecipSettings = "RU";
-    /*****************************************************************/
     
     /******************** Settings Messages **************************/
     private String commsSettingsInit = "M=P,T=0,C=2,I=0,B=19200";
@@ -58,162 +64,11 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
     private String supervisorSettings2 = "I=15,S=N,H=Y";
     private String windSettings1 = "R=0000000011111100";
     private String windSettings2 = "I=1,A=12,U=S,D=0,N=W,F=2";
-    private String ptuSettings1 = "R=0000000011110000";
+    private String ptuSettings1 = "R=1000000011110000";
     private String ptuSettings2 = "I=60,P=I,T=F";
     private String precipSettings1 = "R=0000000010110111";
     private String precipSettings2 = "I=60,U=I,S=I,M=T,Z=A";
     /*****************************************************************/
-    
-    /******************* Wind Measurements Flags *********************/
-    private boolean Dn; // Direction Minimum
-    private boolean Dm; // Direction Average
-    private boolean Dx; // Direction Maximum
-    private boolean Sn; // Speed Minimum
-    private boolean Sm; // Speed Average
-    private boolean Sx; // Speed Maximum
-    
-    public boolean getDn()
-    {
-    	return this.Dn;
-    }
-    
-    public boolean getDm()
-    {
-    	return this.Dm;
-    }
-    
-    public boolean getDx()
-    {
-    	return this.Dx;
-    }
-    
-    public boolean getSn()
-    {
-    	return this.Sn;
-    }
-    
-    public boolean getSm()
-    {
-    	return this.Sm;
-    }
-    
-    public boolean getSx()
-    {
-    	return this.Sx;
-    }
-    /*****************************************************************/
-    
-    /******************** PTU Measurements Flags *********************/
-    private boolean Pa; // Air Pressure
-    private boolean Ta; // Air Temperature
-    private boolean Tp; // Internal Temperature
-    private boolean Ua; // Air Humidity
-    
-    public boolean getPa()
-    {
-    	return this.Pa;
-    }
-    
-    public boolean getTa()
-    {
-    	return this.Ta;
-    }
-    
-    public boolean getTp()
-    {
-    	return this.Tp;
-    }
-    
-    public boolean getUa()
-    {
-    	return this.Ua;
-    }
-    /*****************************************************************/
-    
-    /****************** Precip Measurements Flags ********************/
-    private boolean Rc; // Rain Amount
-    private boolean Rd; // Rain Duration
-    private boolean Ri; // Rain Intensity
-    private boolean Hc; // Hail Amount
-    private boolean Hd; // Hail Duration
-    private boolean Hi; // Hail Intensity
-    private boolean Rp; // Rain Peak
-    private boolean Hp; // Hail Peak
-    
-    public boolean getRc()
-    {
-    	return this.Rc;
-    }
-    
-    public boolean getRd()
-    {
-    	return this.Rd;
-    }
-    
-    public boolean getRi()
-    {
-    	return this.Ri;
-    }
-    
-    public boolean getHc()
-    {
-    	return this.Hc;
-    }
-    
-    public boolean getHd()
-    {
-    	return this.Hd;
-    }
-    
-    public boolean getHi()
-    {
-    	return this.Hi;
-    }
-    
-    public boolean getRp()
-    {
-    	return this.Rp;
-    }
-    
-    public boolean getHp()
-    {
-    	return this.Hp;
-    }
-    /*****************************************************************/
-    
-    /**************** Supervisor Measurements Flags ******************/
-    private boolean Th; // Heating Temperature
-    private boolean Vh; // Heating Voltage
-    private boolean Vs; // Supply Voltage
-    private boolean Vr; // Reference Voltage
-    private boolean Id; // Information Field
-    
-    public boolean getTh()
-    {
-    	return this.Th;
-    }
-    
-    public boolean getVh()
-    {
-    	return this.Vh;
-    }
-    
-    public boolean getVs()
-    {
-    	return this.Vs;
-    }
-    
-    public boolean getVr()
-    {
-    	return this.Vr;
-    }
-    
-    public boolean getId()
-    {
-    	return this.Id;
-    }
-    /*****************************************************************/
-    
     
     public VaisalaWeatherSensor()
     {        
@@ -225,10 +80,25 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
     {
         super.init();
         
-        // create main data interface
-        dataInterface = new VaisalaWeatherOutput(this);
-        addOutput(dataInterface, false);
-        dataInterface.init();
+        // create data interfaces
+        compOut = new VaisalaWeatherCompositeOutput(this);
+        addOutput(compOut, false);
+        
+        windOut = new VaisalaWeatherWindOutput(this);
+        addOutput(windOut, false);
+        
+        ptuOut = new VaisalaWeatherPTUOutput(this);
+        addOutput(ptuOut, false);
+//        
+//        precipOut = new VaisalaWeatherCompositeOutput(this);
+//        addOutput(precipOut, false);
+//        precipOut.init();
+
+//        supOut = new VaisalaWeatherCompositeOutput(this);
+//        addOutput(supOut, false);
+//        supOut.init();
+        
+        System.out.println("Initializing...");
         
         // init comm provider
         if (commProvider == null)
@@ -247,6 +117,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 getLogger().info("Connected to Vaisala data stream");
 
                 
+                System.out.println(CRLF + "Getting Device Address...");
                 /************************* Get Device Address *************************/
                 dataOut.write("?" + CRLF);
                 dataOut.flush();
@@ -277,6 +148,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 /***********************************************************************/
                 
                 
+                System.out.println(CRLF + "Configuring Comm Protocol...");
                 /***************** Configure Comm Protocol to ASCII Poll ***************/
                 dataOut.write(deviceAddress + "XU," + commsSettingsInit + CRLF);
                 dataOut.flush();
@@ -295,11 +167,12 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 {
                 	inputLine = dataIn.readLine();
                 }
+                System.out.println("Changed Comm Settings: " + inputLine);
                 // should be in polling mode at this point
                 inputLine = null;
                 /***********************************************************************/
                 
-                
+                System.out.println(CRLF + "Getting Model Number...");
                 /**************************** Get Model Number *************************/
                 dataOut.write(deviceAddress + "XU" + CRLF);
                 dataOut.flush();
@@ -312,10 +185,11 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 inputLine = dataIn.readLine();
                 String[] split = inputLine.split(",");
                 modelNumber = split[11].replaceAll("N=", "");
+                System.out.println("Model Number: " + modelNumber);
                 inputLine = null;
                 /***********************************************************************/
                 
-                
+                System.out.println(CRLF + "Configuring Supervisor Settings...");
                 /******************** Configure Supervisor Settings ********************/
                 dataOut.write(deviceAddress + "SU," + supervisorSettings1 + CRLF);
                 dataOut.flush();
@@ -326,8 +200,25 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 					e.printStackTrace();
 				}
                 inputLine = dataIn.readLine();
-                inputLine = null;
+                System.out.println("Sup Message Settings: " + inputLine);
                 
+                checkMesSettings = inputLine.split(",");
+                compSupMesSettings = checkMesSettings[1];
+                indSupMesSettings = compSupMesSettings.substring(2, 10);
+                
+                System.out.println("Ind Sup Message Settings: " + indSupMesSettings);
+                
+                if (indSupMesSettings.length() != 8 || !indSupMesSettings.replaceAll("[01]", "").isEmpty())
+                	System.err.println("Unrecognized Supervisor Message Setting");
+                
+                compSupMesSettings = compSupMesSettings.substring(compSupMesSettings.length() - 8);
+                System.out.println("Comp Sup Message Settings: " + compSupMesSettings);
+                
+                if (compSupMesSettings.length() != 8 || !compSupMesSettings.replaceAll("[01]", "").isEmpty())
+                	System.err.println("Unrecognized Supervisor Message Setting");
+                checkMesSettings = null;
+                
+                inputLine = null;
                 dataOut.write(deviceAddress + "SU," + supervisorSettings2 + CRLF);
                 dataOut.flush();
                 try {
@@ -340,7 +231,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 inputLine = null;
                 /***********************************************************************/
                 
-                
+                System.out.println(CRLF + "Configuring Wind Settings...");
                 /************************ Configure Wind Settings **********************/
                 dataOut.write(deviceAddress + "WU," + windSettings1 + CRLF);
                 dataOut.flush();
@@ -351,8 +242,25 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 					e.printStackTrace();
 				}
                 inputLine = dataIn.readLine();
-                inputLine = null;
+                System.out.println("Wind Message Settings: " + inputLine);
                 
+                checkMesSettings = inputLine.split(",");
+                compWindMesSettings = checkMesSettings[1];
+                indWindMesSettings = compWindMesSettings.substring(2, 10);
+                
+                System.out.println("Ind Wind Message Settings: " + indWindMesSettings);
+                
+                if (indWindMesSettings.length() != 8 || !indWindMesSettings.replaceAll("[01]", "").isEmpty())
+                	System.err.println("Unrecognized Wind Message Setting");
+                
+                compWindMesSettings = compWindMesSettings.substring(compWindMesSettings.length() - 8);
+                System.out.println("Comp Wind Message Settings: " + compWindMesSettings);
+                
+                if (compSupMesSettings.length() != 8 || !compSupMesSettings.replaceAll("[01]", "").isEmpty())
+                	System.err.println("Unrecognized Wind Message Setting");
+                checkMesSettings = null;
+                
+                inputLine = null;
                 dataOut.write(deviceAddress + "WU," + windSettings2 + CRLF);
                 dataOut.flush();
                 try {
@@ -365,7 +273,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 inputLine = null;
                 /************************************************************************/
                 
-                
+                System.out.println(CRLF + "Configuring PTU Settings...");
                 /************************ Configure PTU Settings ************************/
                 dataOut.write(deviceAddress + "TU," + ptuSettings1 + CRLF);
                 dataOut.flush();
@@ -376,8 +284,27 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 					e.printStackTrace();
 				}
                 inputLine = dataIn.readLine();
-                inputLine = null;
+                System.out.println("PTU Message Settings: " + inputLine);
                 
+                
+                checkMesSettings = inputLine.split(",");
+                compPTUMesSettings = checkMesSettings[1];
+                indPTUMesSettings = compPTUMesSettings.substring(2, 10);
+                
+                System.out.println("Ind PTU Message Settings: " + indPTUMesSettings);
+                
+                if (indPTUMesSettings.length() != 8 || !indPTUMesSettings.replaceAll("[01]", "").isEmpty())
+                	System.err.println("Unrecognized Wind Message Setting");
+                
+                compPTUMesSettings = compPTUMesSettings.substring(compPTUMesSettings.length() - 8);
+                System.out.println("Comp PTU Message Settings: " + compPTUMesSettings);
+                
+                if (compPTUMesSettings.length() != 8 || !compPTUMesSettings.replaceAll("[01]", "").isEmpty())
+                	System.err.println("Unrecognized PTU Message Setting");
+                checkMesSettings = null;
+                
+                
+                inputLine = null;
                 dataOut.write(deviceAddress + "TU," + ptuSettings2 + CRLF);
                 dataOut.flush();
                 try {
@@ -390,7 +317,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 inputLine = null;
                 /***********************************************************************/
                 
-                
+                System.out.println(CRLF + "Configuring Precip Settings...");
                 /************************ Configure Precip Settings ********************/
                 dataOut.write(deviceAddress + "RU," + precipSettings1 + CRLF);
                 dataOut.flush();
@@ -401,6 +328,26 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 					e.printStackTrace();
 				}
                 inputLine = dataIn.readLine();
+                System.out.println("Precip Message Settings: " + inputLine);
+                
+                
+                checkMesSettings = inputLine.split(",");
+                compPrecipMesSettings = checkMesSettings[1];
+                indPrecipMesSettings = compPrecipMesSettings.substring(2, 10);
+                
+                System.out.println("Ind Precip Message Settings: " + indPrecipMesSettings);
+                
+                if (indPrecipMesSettings.length() != 8 || !indPrecipMesSettings.replaceAll("[01]", "").isEmpty())
+                	System.err.println("Unrecognized Precip Message Setting");
+                
+                compPrecipMesSettings = compPrecipMesSettings.substring(compPrecipMesSettings.length() - 8);
+                System.out.println("Comp Precip Message Settings: " + compPrecipMesSettings);
+                
+                if (compPrecipMesSettings.length() != 8 || !compPrecipMesSettings.replaceAll("[01]", "").isEmpty())
+                	System.err.println("Unrecognized Precip Message Setting");
+                checkMesSettings = null;
+                
+                
                 inputLine = null;
                 
                 dataOut.write(deviceAddress + "RU," + precipSettings2 + CRLF);
@@ -415,7 +362,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 inputLine = null;
                 /***********************************************************************/
                 
-                
+                System.out.println(CRLF + "Configuring Comm Protocol Settings...");
                 /***************** Configure Comm Protocol to Auto ASCII ***************/
                 dataOut.write(deviceAddress + "XU," + commsSettingsAutoASCII + CRLF);
                 dataOut.flush();
@@ -426,9 +373,9 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 					e.printStackTrace();
 				}
                 inputLine = dataIn.readLine();
+                System.out.println("Changed Comm Settings: " + inputLine);
                 inputLine = null;
                 /***********************************************************************/
-                
             }
             catch (IOException e)
             {
@@ -446,14 +393,20 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
         // add unique ID based on serial number
         this.uniqueID = "urn:vaisala:" + modelNumber + ":" + serialNumber;
         this.xmlID = "VAISALA_" + modelNumber + "_" + serialNumber.toUpperCase();
+        
+        compOut.init(compSupMesSettings,compWindMesSettings,compPTUMesSettings,compPrecipMesSettings);
+        windOut.init(indWindMesSettings);
+        ptuOut.init(indPTUMesSettings);
+        System.out.println("...Done Initializing");
     }
-
+    
     
     @Override
     protected void updateSensorDescription()
     {
         synchronized (sensorDescription)
         {
+        	System.out.println("Updating Sensor Description...");
         	// set identifiers in SensorML
             SMLFactory smlFac = new SMLFactory();            
 
@@ -502,20 +455,87 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
             term.setValue("Vaisala " + modelNumber);
             identifierList.addIdentifier2(term);
         }
+        System.out.println("Done Updating Sensor Description");
     }
 
 
+    private void getMeasurement()
+    {	
+    	String inputLine = null;
+    	try {
+    		
+    		/******** Get Input from Serial and "Tokenize" ************/
+    		System.out.println(CRLF + "Got Measurement!");
+            inputLine = dataIn.readLine();
+            System.out.println("Message: " + inputLine);
+            inputTemp = inputLine.split(",");
+            System.out.println("Message Type: " + inputTemp[0].substring(1));
+            
+            switch (inputTemp[0].substring(1))
+            {
+            case "R0":
+            	compOut.ParseAndSendCompMeasurement(inputLine);
+            	break;
+            case "R1":
+            	windOut.ParseAndSendWindMeasurement(inputLine);
+            	break;
+            case "R2":
+            	ptuOut.ParseAndSendPTUMeasurement(inputLine);
+            default:
+            	break;
+            }
+            /**********************************************************/
+		}
+    	catch (Exception e)
+    	{
+			e.printStackTrace();
+		}
+    }
+    
     @Override
     public void start() throws SensorHubException
     {
-    	dataInterface.start();
+    	// start main measurement thread
+      Thread t = new Thread(new Runnable()
+      {
+          public void run()
+          {
+              while (started)
+              {
+            	  System.out.println("Getting Measurement...");
+                  getMeasurement();
+              }
+              
+              reader = null;
+          }
+      });
+      
+      started = true;
+      t.start();
     }
     
 
     @Override
     public void stop() throws SensorHubException
     {
-        dataInterface.stop();
+    	started = false;
+      
+      if (reader != null)
+      {
+          try { reader.close(); }
+          catch (IOException e) { }
+      }
+      
+      if (commProvider != null)
+      {
+      	try {
+				commProvider.stop();
+			} catch (SensorHubException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+      	commProvider = null;
+      }
     }
     
 
@@ -531,4 +551,5 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
     {
         return true;
     }
+    
 }
