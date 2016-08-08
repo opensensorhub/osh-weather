@@ -1,17 +1,13 @@
 package org.sensorhub.impl.sensor.vaisala;
 
-import java.util.StringTokenizer;
 import java.util.Timer;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.IOException;
-
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.Quantity;
 
-import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.sensor.SensorDataEvent;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
 import org.vast.swe.SWEHelper;
@@ -46,16 +42,18 @@ public class VaisalaWeatherWindOutput extends AbstractSensorOutput<VaisalaWeathe
 
     protected void init(String WindSettings)
     {
+    	System.out.println("");
+    	System.out.println("Configuring Wind Message Data Parameters...");
         SWEHelper fac = new SWEHelper();
         
         // Get number of wind measurements being requested to preallocate dataRecord
         
         windSum = WindSettings.replaceAll("[0]", "").length();
-        System.out.println("windSum = " + windSum);
+        System.out.println("No. Wind Parameter = " + windSum);
         
         // Add 1 for time field
         DataRecLen = 1 + windSum;
-        System.out.println("totalSum = " + DataRecLen);
+        System.out.println("Total No. Parameters = " + DataRecLen);
         
         // build SWE Common record structure
     	weatherDataWind = fac.newDataRecord(DataRecLen);
@@ -69,6 +67,8 @@ public class VaisalaWeatherWindOutput extends AbstractSensorOutput<VaisalaWeathe
         /************************* Add appropriate wind data fields **************************************************************************************************************************/
         System.out.println("");
         System.out.println("aR1 Wind Sensor Settings...");
+        
+        // compare wind settings bits and add appropriate data components to block
         System.out.println("Dn Bit = " + WindSettings.charAt(0));
         if (WindSettings.charAt(0) == '1')
         {
@@ -126,9 +126,11 @@ public class VaisalaWeatherWindOutput extends AbstractSensorOutput<VaisalaWeathe
     public void ParseAndSendWindMeasurement(String windInMessage)
     {
     	System.out.println("Wind Message: " + windInMessage);
-    	windMessage = windInMessage.split(",");
+    	windMessage = windInMessage.split(","); // split wind message
     	DataBlock dataBlock = weatherDataWind.createDataBlock();
     	dataBlock.setDoubleValue(0, System.currentTimeMillis() / 1000);
+    	
+    	// parse wind message and place data in block
     	for (int cnt = 1; cnt < windMessage.length; cnt++)
     	{
     		/*************************** Wind Messages ****************************/

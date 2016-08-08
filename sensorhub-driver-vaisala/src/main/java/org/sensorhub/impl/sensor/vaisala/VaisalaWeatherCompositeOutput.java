@@ -49,25 +49,26 @@ public class VaisalaWeatherCompositeOutput extends AbstractSensorOutput<VaisalaW
 
     protected void init(String SupSettings,String WindSettings,String PTUSettings,String PrecipSettings)
     {
-    	System.out.println("Configuring Data Parameters...");
+    	System.out.println("");
+    	System.out.println("Configuring Composite Message Data Parameters...");
         SWEHelper fac = new SWEHelper();
         
         // Get total number of measurements being requested to preallocate dataRecord
         supSum = SupSettings.replaceAll("[0]", "").length();
-        System.out.println("supSum = " + supSum);
+        System.out.println("No. Sup Parameters = " + supSum);
         
         windSum = WindSettings.replaceAll("[0]", "").length();
-        System.out.println("windSum = " + windSum);
+        System.out.println("No. Wind Parameters = " + windSum);
         
         ptuSum = PTUSettings.replaceAll("[0]", "").length();
-        System.out.println("ptuSum = " + ptuSum);
+        System.out.println("No. PTU Parameters = " + ptuSum);
         
         precipSum = PrecipSettings.replaceAll("[0]", "").length();
-        System.out.println("precipSum = " + precipSum);
+        System.out.println("No. Precip Parameters = " + precipSum);
         
         // Add 1 for time field
         DataRecLen = 1 + supSum + windSum + ptuSum + precipSum;
-        System.out.println("totalSum = " + DataRecLen);
+        System.out.println("Total No. Parameters = " + DataRecLen);
         
         // build SWE Common record structure
     	weatherDataComp = fac.newDataRecord(DataRecLen);
