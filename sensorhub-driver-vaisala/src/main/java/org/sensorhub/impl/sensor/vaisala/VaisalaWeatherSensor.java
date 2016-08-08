@@ -96,7 +96,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
         supOut = new VaisalaWeatherSupervisorOutput(this);
         addOutput(supOut, false);
         
-        System.out.println("Initializing...");
+        //System.out.println("Initializing...");
         
         // init comm provider
         if (commProvider == null)
@@ -116,7 +116,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 
                 
                 /************************* Get Device Address *************************/
-                System.out.println(CRLF + "Getting Device Address...");
+                //System.out.println(CRLF + "Getting Device Address...");
                 dataOut.write("?" + CRLF);
                 dataOut.flush();
                 try {
@@ -141,13 +141,13 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 
                 // save dataAddress to use in commands
                 deviceAddress = inputLine;
-                System.out.println("Device Address = " + deviceAddress);
+                System.out.println(CRLF + "Device Address = " + deviceAddress);
                 inputLine = null;
                 /***********************************************************************/
                 
                 
                 /***************** Configure Comm Protocol to ASCII Poll ***************/
-                System.out.println(CRLF + "Configuring Comm Protocol...");
+                //System.out.println(CRLF + "Configuring Comm Protocol...");
                 dataOut.write(deviceAddress + "XU," + commsSettingsInit + CRLF);
                 dataOut.flush();
                 try {
@@ -165,13 +165,13 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 {
                 	inputLine = dataIn.readLine();
                 }
-                System.out.println("Changed Comm Settings: " + inputLine);
+                //System.out.println("Changed Comm Settings: " + inputLine);
                 // should be in polling mode at this point
                 inputLine = null;
                 /***********************************************************************/
                 
                 /**************************** Get Model Number *************************/
-                System.out.println(CRLF + "Getting Model Number...");
+                //System.out.println(CRLF + "Getting Model Number...");
                 dataOut.write(deviceAddress + "XU" + CRLF);
                 dataOut.flush();
                 try {
@@ -188,7 +188,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 /***********************************************************************/
                 
                 /******************** Configure Supervisor Settings ********************/
-                System.out.println(CRLF + "Configuring Supervisor Settings...");
+                //System.out.println(CRLF + "Configuring Supervisor Settings...");
                 dataOut.write(deviceAddress + "SU," + supervisorSettings1 + CRLF);
                 dataOut.flush();
                 try {
@@ -198,19 +198,19 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 					e.printStackTrace();
 				}
                 inputLine = dataIn.readLine();
-                System.out.println("Sup Message Settings: " + inputLine);
+                //System.out.println("Sup Message Settings: " + inputLine);
                 
                 checkMesSettings = inputLine.split(",");
                 compSupMesSettings = checkMesSettings[1];
                 indSupMesSettings = compSupMesSettings.substring(2, 10);
                 
-                System.out.println("Ind Sup Message Settings: " + indSupMesSettings);
+                //System.out.println("Ind Sup Message Settings: " + indSupMesSettings);
                 
                 if (indSupMesSettings.length() != 8 || !indSupMesSettings.replaceAll("[01]", "").isEmpty())
                 	System.err.println("Unrecognized Supervisor Message Setting");
                 
                 compSupMesSettings = compSupMesSettings.substring(compSupMesSettings.length() - 8);
-                System.out.println("Comp Sup Message Settings: " + compSupMesSettings);
+                //System.out.println("Comp Sup Message Settings: " + compSupMesSettings);
                 
                 if (compSupMesSettings.length() != 8 || !compSupMesSettings.replaceAll("[01]", "").isEmpty())
                 	System.err.println("Unrecognized Supervisor Message Setting");
@@ -229,7 +229,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 inputLine = null;
                 /***********************************************************************/
                 
-                System.out.println(CRLF + "Configuring Wind Settings...");
+                //System.out.println(CRLF + "Configuring Wind Settings...");
                 /************************ Configure Wind Settings **********************/
                 dataOut.write(deviceAddress + "WU," + windSettings1 + CRLF);
                 dataOut.flush();
@@ -240,19 +240,19 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 					e.printStackTrace();
 				}
                 inputLine = dataIn.readLine();
-                System.out.println("Wind Message Settings: " + inputLine);
+                //System.out.println("Wind Message Settings: " + inputLine);
                 
                 checkMesSettings = inputLine.split(",");
                 compWindMesSettings = checkMesSettings[1];
                 indWindMesSettings = compWindMesSettings.substring(2, 10);
                 
-                System.out.println("Ind Wind Message Settings: " + indWindMesSettings);
+                //System.out.println("Ind Wind Message Settings: " + indWindMesSettings);
                 
                 if (indWindMesSettings.length() != 8 || !indWindMesSettings.replaceAll("[01]", "").isEmpty())
                 	System.err.println("Unrecognized Wind Message Setting");
                 
                 compWindMesSettings = compWindMesSettings.substring(compWindMesSettings.length() - 8);
-                System.out.println("Comp Wind Message Settings: " + compWindMesSettings);
+                //System.out.println("Comp Wind Message Settings: " + compWindMesSettings);
                 
                 if (compSupMesSettings.length() != 8 || !compSupMesSettings.replaceAll("[01]", "").isEmpty())
                 	System.err.println("Unrecognized Wind Message Setting");
@@ -272,7 +272,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 /************************************************************************/
                 
                 /************************ Configure PTU Settings ************************/
-                System.out.println(CRLF + "Configuring PTU Settings...");
+                //System.out.println(CRLF + "Configuring PTU Settings...");
                 dataOut.write(deviceAddress + "TU," + ptuSettings1 + CRLF);
                 dataOut.flush();
                 try {
@@ -282,20 +282,20 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 					e.printStackTrace();
 				}
                 inputLine = dataIn.readLine();
-                System.out.println("PTU Message Settings: " + inputLine);
+                //System.out.println("PTU Message Settings: " + inputLine);
                 
                 
                 checkMesSettings = inputLine.split(",");
                 compPTUMesSettings = checkMesSettings[1];
                 indPTUMesSettings = compPTUMesSettings.substring(2, 10);
                 
-                System.out.println("Ind PTU Message Settings: " + indPTUMesSettings);
+                //System.out.println("Ind PTU Message Settings: " + indPTUMesSettings);
                 
                 if (indPTUMesSettings.length() != 8 || !indPTUMesSettings.replaceAll("[01]", "").isEmpty())
                 	System.err.println("Unrecognized Wind Message Setting");
                 
                 compPTUMesSettings = compPTUMesSettings.substring(compPTUMesSettings.length() - 8);
-                System.out.println("Comp PTU Message Settings: " + compPTUMesSettings);
+                //System.out.println("Comp PTU Message Settings: " + compPTUMesSettings);
                 
                 if (compPTUMesSettings.length() != 8 || !compPTUMesSettings.replaceAll("[01]", "").isEmpty())
                 	System.err.println("Unrecognized PTU Message Setting");
@@ -316,7 +316,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 /***********************************************************************/
                 
                 /************************ Configure Precip Settings ********************/
-                System.out.println(CRLF + "Configuring Precip Settings...");
+                //System.out.println(CRLF + "Configuring Precip Settings...");
                 dataOut.write(deviceAddress + "RU," + precipSettings1 + CRLF);
                 dataOut.flush();
                 try {
@@ -326,20 +326,20 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 					e.printStackTrace();
 				}
                 inputLine = dataIn.readLine();
-                System.out.println("Precip Message Settings: " + inputLine);
+                //System.out.println("Precip Message Settings: " + inputLine);
                 
                 
                 checkMesSettings = inputLine.split(",");
                 compPrecipMesSettings = checkMesSettings[1];
                 indPrecipMesSettings = compPrecipMesSettings.substring(2, 10);
                 
-                System.out.println("Ind Precip Message Settings: " + indPrecipMesSettings);
+                //System.out.println("Ind Precip Message Settings: " + indPrecipMesSettings);
                 
                 if (indPrecipMesSettings.length() != 8 || !indPrecipMesSettings.replaceAll("[01]", "").isEmpty())
                 	System.err.println("Unrecognized Precip Message Setting");
                 
                 compPrecipMesSettings = compPrecipMesSettings.substring(compPrecipMesSettings.length() - 8);
-                System.out.println("Comp Precip Message Settings: " + compPrecipMesSettings);
+                //System.out.println("Comp Precip Message Settings: " + compPrecipMesSettings);
                 
                 if (compPrecipMesSettings.length() != 8 || !compPrecipMesSettings.replaceAll("[01]", "").isEmpty())
                 	System.err.println("Unrecognized Precip Message Setting");
@@ -361,7 +361,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                 /***********************************************************************/
                 
                 /***************** Configure Comm Protocol to Auto ASCII ***************/
-                System.out.println(CRLF + "Configuring Comm Protocol Settings...");
+                //System.out.println(CRLF + "Configuring Comm Protocol Settings...");
                 dataOut.write(deviceAddress + "XU," + commsSettingsAutoASCII + CRLF);
                 dataOut.flush();
                 try {
@@ -371,7 +371,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
 					e.printStackTrace();
 				}
                 inputLine = dataIn.readLine();
-                System.out.println("Changed Comm Settings: " + inputLine);
+                //System.out.println("Changed Comm Settings: " + inputLine);
                 inputLine = null;
                 /***********************************************************************/
             }
@@ -398,7 +398,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
         ptuOut.init(indPTUMesSettings);
         precipOut.init(indPrecipMesSettings);
         supOut.init(indSupMesSettings);
-        System.out.println(CRLF + "...Done Initializing");
+        //System.out.println("...Done Initializing");
     }
     
     
@@ -466,11 +466,11 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
     	try {
     		
     		/******** Get Input from Serial and Split String ************/
-    		System.out.println(CRLF + "Got Measurement!");
+    		//System.out.println(CRLF + "Got Measurement!");
             inputLine = dataIn.readLine();
-            System.out.println("Message: " + inputLine);
+            //System.out.println("Message: " + inputLine);
             inputTemp = inputLine.split(",");
-            System.out.println("Message Type: " + inputTemp[0].substring(1));
+            //System.out.println("Message Type: " + inputTemp[0].substring(1));
             
             // send message to appropriate output class to be processed
             switch (inputTemp[0].substring(1))
@@ -511,7 +511,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
           {
               while (started)
               {
-            	  System.out.println(CRLF + "Getting Measurement...");
+            	  //System.out.println(CRLF + "Getting Measurement...");
                   getMeasurement();
               }
               

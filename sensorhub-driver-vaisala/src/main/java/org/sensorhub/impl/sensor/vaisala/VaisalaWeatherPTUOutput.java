@@ -3,9 +3,11 @@ package org.sensorhub.impl.sensor.vaisala;
 import java.util.Timer;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
+
 import org.sensorhub.api.sensor.SensorDataEvent;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
 import org.vast.swe.SWEHelper;
@@ -34,24 +36,24 @@ public class VaisalaWeatherPTUOutput extends AbstractSensorOutput<VaisalaWeather
     @Override
     public String getName()
     {
-        return "weather";
+        return "ptu";
     }
 
 
     protected void init(String PTUSettings)
     {
-    	System.out.println("");
-    	System.out.println("Configuring PTU Message Data Parameters...");
+    	//System.out.println("");
+    	//System.out.println("Configuring PTU Message Data Parameters...");
         SWEHelper fac = new SWEHelper();
         
         // Get number of wind measurements being requested to preallocate dataRecord
         
         ptuSum = PTUSettings.replaceAll("[0]", "").length();
-        System.out.println("No. PTU Parameters = " + ptuSum);
+        //System.out.println("No. PTU Parameters = " + ptuSum);
         
         // Add 1 for time field
         DataRecLen = 1 + ptuSum;
-        System.out.println("Total No. Parameters = " + DataRecLen);
+        //System.out.println("Total No. Parameters = " + DataRecLen);
         
         // build SWE Common record structure
     	weatherDataPTU = fac.newDataRecord(DataRecLen);
@@ -63,30 +65,30 @@ public class VaisalaWeatherPTUOutput extends AbstractSensorOutput<VaisalaWeather
         weatherDataPTU.addComponent("time", fac.newTimeStampIsoUTC());
         
         /************************* Add appropriate PTU data fields ********************************************************************************************************************/
-        System.out.println("");
-        System.out.println("aR2 PTU Sensor Settings...");
+        //System.out.println("");
+        //System.out.println("aR2 PTU Sensor Settings...");
         
         // compare ptu settings bits and add appropriate data components to block
-        System.out.println("Air Pressure Bit = " + PTUSettings.charAt(0));
+        //System.out.println("Air Pressure Bit = " + PTUSettings.charAt(0));
 
         if (PTUSettings.charAt(0) == '1')
         {
         	weatherDataPTU.addComponent("pressure", fac.newQuantity(SWEHelper.getPropertyUri("BarometricPressure"), "Barometric Pressure", null, "inHg"));
         }
         
-        System.out.println("Ext Air Temp Bit = " + PTUSettings.charAt(1));
+        //System.out.println("Ext Air Temp Bit = " + PTUSettings.charAt(1));
         if (PTUSettings.charAt(1) == '1')
         {
         	weatherDataPTU.addComponent("tempExt", fac.newQuantity(SWEHelper.getPropertyUri("AirTemperature"), "Air Temperature", null, "Fah"));
         }
         
-        System.out.println("Int Air Temp Bit = " + PTUSettings.charAt(2));
+        //System.out.println("Int Air Temp Bit = " + PTUSettings.charAt(2));
         if (PTUSettings.charAt(2) == '1')
         {
         	weatherDataPTU.addComponent("tempInt", fac.newQuantity(SWEHelper.getPropertyUri("AirTemperature"), "Internal Temperature", null, "Fah"));
         }
         
-        System.out.println("Rel Humidity Bit = " + PTUSettings.charAt(3));
+        //System.out.println("Rel Humidity Bit = " + PTUSettings.charAt(3));
         if (PTUSettings.charAt(3) == '1')
         {
         	weatherDataPTU.addComponent("relHumidity", fac.newQuantity(SWEHelper.getPropertyUri("RelativeHumidity"), "Relative Humidity", null, "%"));
@@ -100,7 +102,7 @@ public class VaisalaWeatherPTUOutput extends AbstractSensorOutput<VaisalaWeather
     
     public void ParseAndSendPTUMeasurement(String ptuInMessage)
     {
-    	System.out.println("PTU Message: " + ptuInMessage);
+    	//System.out.println("PTU Message: " + ptuInMessage);
     	ptuMessage = ptuInMessage.split(","); // split ptu message
     	DataBlock dataBlock = weatherDataPTU.createDataBlock();
     	dataBlock.setDoubleValue(0, System.currentTimeMillis() / 1000);
@@ -112,56 +114,56 @@ public class VaisalaWeatherPTUOutput extends AbstractSensorOutput<VaisalaWeather
     		if (ptuMessage[cnt].startsWith("Ta"))
     			if (ptuMessage[cnt].endsWith("#"))
     			{
-    				System.out.println("Got Ta token with invalid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.NaN);
+    				//System.out.println("Ta = " + Double.NaN);
     				continue;
     			}
     			else
     			{
-    				System.out.println("Got Ta token with valid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.parseDouble(ptuMessage[cnt].replaceAll("[^0-9.]", "")));
+    				//System.out.println("Ta = " + Double.parseDouble(ptuMessage[cnt].replaceAll("[^0-9.]", "")));
     				continue;
     			}
     		
     		else if (ptuMessage[cnt].startsWith("Tp"))
     			if (ptuMessage[cnt].endsWith("#"))
     			{
-    				System.out.println("Got Tp token with invalid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.NaN);
+    				//System.out.println("Tp = " + Double.NaN);
     				continue;
     			}
     			else
     			{
-    				System.out.println("Got Tp token with valid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.parseDouble(ptuMessage[cnt].replaceAll("[^0-9.]", "")));
+    				//System.out.println("Tp = " + Double.parseDouble(ptuMessage[cnt].replaceAll("[^0-9.]", "")));
     				continue;
     			}
     		
     		else if (ptuMessage[cnt].startsWith("Ua"))
     			if (ptuMessage[cnt].endsWith("#"))
     			{
-    				System.out.println("Got Ua token with invalid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.NaN);
+    				//System.out.println("Ua = " + Double.NaN);
     				continue;
     			}
     			else
     			{
-    				System.out.println("Got Ua token with valid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.parseDouble(ptuMessage[cnt].replaceAll("[^0-9.]", "")));
+    				//System.out.println("Ua = " + Double.parseDouble(ptuMessage[cnt].replaceAll("[^0-9.]", "")));
     				continue;
     			}
     		
     		else if (ptuMessage[cnt].startsWith("Pa"))
     			if (ptuMessage[cnt].endsWith("#"))
     			{
-    				System.out.println("Got Pa token with invalid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.NaN);
+    				//System.out.println("Pa = " + Double.NaN);
     				continue;
     			}
     			else
     			{
-    				System.out.println("Got Pa token with valid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.parseDouble(ptuMessage[cnt].replaceAll("[^0-9.]", "")));
+    				//System.out.println("Pa = " + Double.parseDouble(ptuMessage[cnt].replaceAll("[^0-9.]", "")));
     				continue;
     			}
     		else

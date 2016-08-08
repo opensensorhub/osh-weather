@@ -3,6 +3,7 @@ package org.sensorhub.impl.sensor.vaisala;
 import java.util.Timer;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
@@ -36,24 +37,24 @@ public class VaisalaWeatherWindOutput extends AbstractSensorOutput<VaisalaWeathe
     @Override
     public String getName()
     {
-        return "weather";
+        return "wind";
     }
 
 
     protected void init(String WindSettings)
     {
-    	System.out.println("");
-    	System.out.println("Configuring Wind Message Data Parameters...");
+    	//System.out.println("");
+    	//System.out.println("Configuring Wind Message Data Parameters...");
         SWEHelper fac = new SWEHelper();
         
         // Get number of wind measurements being requested to preallocate dataRecord
         
         windSum = WindSettings.replaceAll("[0]", "").length();
-        System.out.println("No. Wind Parameter = " + windSum);
+        //System.out.println("No. Wind Parameter = " + windSum);
         
         // Add 1 for time field
         DataRecLen = 1 + windSum;
-        System.out.println("Total No. Parameters = " + DataRecLen);
+        //System.out.println("Total No. Parameters = " + DataRecLen);
         
         // build SWE Common record structure
     	weatherDataWind = fac.newDataRecord(DataRecLen);
@@ -65,11 +66,11 @@ public class VaisalaWeatherWindOutput extends AbstractSensorOutput<VaisalaWeathe
         weatherDataWind.addComponent("time", fac.newTimeStampIsoUTC());
         
         /************************* Add appropriate wind data fields **************************************************************************************************************************/
-        System.out.println("");
-        System.out.println("aR1 Wind Sensor Settings...");
+        //System.out.println("");
+        //System.out.println("aR1 Wind Sensor Settings...");
         
         // compare wind settings bits and add appropriate data components to block
-        System.out.println("Dn Bit = " + WindSettings.charAt(0));
+        //System.out.println("Dn Bit = " + WindSettings.charAt(0));
         if (WindSettings.charAt(0) == '1')
         {
         	// for wind direction, we also specify a reference frame
@@ -79,7 +80,7 @@ public class VaisalaWeatherWindOutput extends AbstractSensorOutput<VaisalaWeathe
             weatherDataWind.addComponent("windDirMin", q1);
         }
         
-        System.out.println("Dm Bit = " + WindSettings.charAt(1));
+        //System.out.println("Dm Bit = " + WindSettings.charAt(1));
         if (WindSettings.charAt(1) == '1')
         {
         	// for wind direction, we also specify a reference frame
@@ -89,7 +90,7 @@ public class VaisalaWeatherWindOutput extends AbstractSensorOutput<VaisalaWeathe
             weatherDataWind.addComponent("windDirAvg", q2);
         }
         
-        System.out.println("Dx Bit = " + WindSettings.charAt(2));
+        //System.out.println("Dx Bit = " + WindSettings.charAt(2));
         if (WindSettings.charAt(2) == '1')
         {
         	// for wind direction, we also specify a reference frame
@@ -99,19 +100,19 @@ public class VaisalaWeatherWindOutput extends AbstractSensorOutput<VaisalaWeathe
             weatherDataWind.addComponent("windDirMax", q3);
         }
         
-        System.out.println("Sn Bit = " + WindSettings.charAt(3));
+        //System.out.println("Sn Bit = " + WindSettings.charAt(3));
         if (WindSettings.charAt(3) == '1')
         {
         	weatherDataWind.addComponent("windSpeedMin", fac.newQuantity(SWEHelper.getPropertyUri("WindSpeedMin"), "Wind Speed Minumum", null, "mph"));
         }
         
-        System.out.println("Sm Bit = " + WindSettings.charAt(4));
+        //System.out.println("Sm Bit = " + WindSettings.charAt(4));
         if (WindSettings.charAt(4) == '1')
         {
         	weatherDataWind.addComponent("windSpeedAvg", fac.newQuantity(SWEHelper.getPropertyUri("WindSpeedAvg"), "Wind Speed Average", null, "mph"));
         }
         
-        System.out.println("Sx Bit = " + WindSettings.charAt(5));
+        //System.out.println("Sx Bit = " + WindSettings.charAt(5));
         if (WindSettings.charAt(5) == '1')
         {
         	weatherDataWind.addComponent("windSpeedMax", fac.newQuantity(SWEHelper.getPropertyUri("WindSpeedMax"), "Wind Speed Maximum", null, "mph"));
@@ -125,7 +126,7 @@ public class VaisalaWeatherWindOutput extends AbstractSensorOutput<VaisalaWeathe
     
     public void ParseAndSendWindMeasurement(String windInMessage)
     {
-    	System.out.println("Wind Message: " + windInMessage);
+    	//System.out.println("Wind Message: " + windInMessage);
     	windMessage = windInMessage.split(","); // split wind message
     	DataBlock dataBlock = weatherDataWind.createDataBlock();
     	dataBlock.setDoubleValue(0, System.currentTimeMillis() / 1000);
@@ -137,84 +138,84 @@ public class VaisalaWeatherWindOutput extends AbstractSensorOutput<VaisalaWeathe
     		if (windMessage[cnt].startsWith("Dn"))
     			if (windMessage[cnt].endsWith("#"))
     			{
-    				System.out.println("Got Dn token with invalid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.NaN);
+    				//System.out.println("Dn = " + Double.NaN);
     				continue;
     			}
     			else
     			{
-    				System.out.println("Got Dn token with valid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.parseDouble(windMessage[cnt].replaceAll("[^0-9.]", "")));
+    				//System.out.println("Dn = " + Double.parseDouble(windMessage[cnt].replaceAll("[^0-9.]", "")));
     				continue;
     			}
     		
     		else if (windMessage[cnt].startsWith("Dm"))
     			if (windMessage[cnt].endsWith("#"))
     			{
-    				System.out.println("Got Dm token with invalid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.NaN);
+    				//System.out.println("Dm = " + Double.NaN);
     				continue;
     			}
     			else
     			{
-    				System.out.println("Got Dn token with valid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.parseDouble(windMessage[cnt].replaceAll("[^0-9.]", "")));
+    				//System.out.println("Dm = " + Double.parseDouble(windMessage[cnt].replaceAll("[^0-9.]", "")));
     				continue;
     			}
     		
     		else if (windMessage[cnt].startsWith("Dx"))
     			if (windMessage[cnt].endsWith("#"))
     			{
-    				System.out.println("Got Dx token with invalid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.NaN);
+    				//System.out.println("Dx = " + Double.NaN);
     				continue;
     			}
     			else
     			{
-    				System.out.println("Got Dx token with valid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.parseDouble(windMessage[cnt].replaceAll("[^0-9.]", "")));
+    				//System.out.println("Dx = " + Double.parseDouble(windMessage[cnt].replaceAll("[^0-9.]", "")));
     				continue;
     			}
     		
     		else if (windMessage[cnt].startsWith("Sn"))
     			if (windMessage[cnt].endsWith("#"))
     			{
-    				System.out.println("Got Sn token with invalid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.NaN);
+    				//System.out.println("Sn = " + Double.NaN);
     				continue;
     			}
     			else
     			{
-    				System.out.println("Got Sn token with valid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.parseDouble(windMessage[cnt].replaceAll("[^0-9.]", "")));
+    				//System.out.println("Sn = " + Double.parseDouble(windMessage[cnt].replaceAll("[^0-9.]", "")));
     				continue;
     			}
     		
     		else if (windMessage[cnt].startsWith("Sm"))
     			if (windMessage[cnt].endsWith("#"))
     			{
-    				System.out.println("Got Sm token with invalid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.NaN);
+    				//System.out.println("Sm = " + Double.NaN);
     				continue;
     			}
     			else
     			{
-    				System.out.println("Got Sm token with valid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.parseDouble(windMessage[cnt].replaceAll("[^0-9.]", "")));
+    				//System.out.println("Sm = " + Double.parseDouble(windMessage[cnt].replaceAll("[^0-9.]", "")));
     				continue;
     			}
     		
     		else if (windMessage[cnt].startsWith("Sx"))
     			if (windMessage[cnt].endsWith("#"))
     			{
-    				System.out.println("Got Sx token with invalid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.NaN);
+    				//System.out.println("Sx = " + Double.NaN);
     				continue;
     			}
     			else
     			{
-    				System.out.println("Got Sx token with valid data @ iter " + cnt);
     				dataBlock.setDoubleValue(cnt, Double.parseDouble(windMessage[cnt].replaceAll("[^0-9.]", "")));
+    				//System.out.println("Sx = " + Double.parseDouble(windMessage[cnt].replaceAll("[^0-9.]", "")));
     				continue;
     			}
     		else

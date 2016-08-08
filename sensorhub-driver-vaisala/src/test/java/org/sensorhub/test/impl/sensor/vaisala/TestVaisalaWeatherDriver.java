@@ -93,6 +93,10 @@ public class TestVaisalaWeatherDriver implements IEventListener
     {
         System.out.println();
         ISensorDataInterface gpsOutput = driver.getObservationOutputs().get("weather");
+        //ISensorDataInterface gpsOutput = driver.getObservationOutputs().get("wind");
+        //ISensorDataInterface gpsOutput = driver.getObservationOutputs().get("ptu");
+        //ISensorDataInterface gpsOutput = driver.getObservationOutputs().get("precipitation");
+        //ISensorDataInterface gpsOutput = driver.getObservationOutputs().get("supervisor");
         
         writer = new AsciiDataWriter();
         writer.setDataEncoding(new TextEncodingImpl(",", "\n"));
