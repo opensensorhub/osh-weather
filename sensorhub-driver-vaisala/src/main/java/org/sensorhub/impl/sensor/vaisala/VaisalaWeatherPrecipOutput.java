@@ -1,17 +1,11 @@
 package org.sensorhub.impl.sensor.vaisala;
 
-import java.util.StringTokenizer;
 import java.util.Timer;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.IOException;
-
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
-import net.opengis.swe.v20.Quantity;
-
-import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.sensor.SensorDataEvent;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
 import org.vast.swe.SWEHelper;
