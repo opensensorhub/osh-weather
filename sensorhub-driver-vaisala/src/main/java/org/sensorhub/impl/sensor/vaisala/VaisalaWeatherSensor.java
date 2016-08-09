@@ -60,8 +60,8 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
     /*****************************************************************/
     
     /******************* Editable Sensor Settings ********************/
-    private String supervisorSettings1 = "R=0000000011100000";
-    private String supervisorSettings2 = "I=15,S=N,H=Y";
+    private String supervisorSettings1 = "R=0000000000100000";
+    private String supervisorSettings2 = "I=15,S=N,H=N";
     private String windSettings1 = "R=0000000011111100";
     private String windSettings2 = "I=1,A=12,U=S,D=0,N=W,F=2";
     private String ptuSettings1 = "R=0000000011110000";
