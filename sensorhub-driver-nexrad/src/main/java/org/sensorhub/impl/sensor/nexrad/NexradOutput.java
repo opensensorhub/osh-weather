@@ -72,10 +72,10 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	InputStream is;
 	int numListeners;
 	NexradSensor nexradSensor;
-	LdmFilesProvider ldmFilesProvider;
+	//	LdmFilesProvider ldmFilesProvider;
 	ChunkPathQueue chunkQueue;
 
-	
+
 	//  Listener Check needed to know if anyone is receiving events to know when to delete the AWS queue
 	static final long LISTENER_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(1); 
 
@@ -134,7 +134,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		rangeToCenterOfFirstRefGate.setDefinition("http://sensorml.com/ont/swe/property/Range.html");
 		rangeToCenterOfFirstRefGate.getUom().setCode("m");
 		nexradStruct.addComponent("rangeToCenterOfFirstRefGate", rangeToCenterOfFirstRefGate);
-		
+
 		// 5
 		Quantity refGateSize = new QuantityImpl(DataType.SHORT);
 		refGateSize.setDefinition("http://sensorml.com/ont/swe/property/RangeSampleSpacing.html"); 
@@ -152,7 +152,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		rangeToCenterOfFirstVelGate.setDefinition("http://sensorml.com/ont/swe/property/Range.html"); 
 		rangeToCenterOfFirstVelGate.getUom().setCode("m");
 		nexradStruct.addComponent("rangeToCenterOfFirstVelGate", rangeToCenterOfFirstVelGate);
-		
+
 		// 8
 		Quantity velGateSize = new QuantityImpl(DataType.SHORT);
 		velGateSize.setDefinition("http://sensorml.com/ont/swe/property/RangeSampleSpacing.html"); 
@@ -170,7 +170,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		rangeToCenterOfFirstSwGate.setDefinition("http://sensorml.com/ont/swe/property/Range.html"); 
 		rangeToCenterOfFirstSwGate.getUom().setCode("m");
 		nexradStruct.addComponent("rangeToCenterOfFirstSwGate", rangeToCenterOfFirstSwGate);
-		
+
 		// 11
 		Quantity swGateSize = new QuantityImpl(DataType.SHORT);
 		swGateSize.setDefinition("http://sensorml.com/ont/swe/property/RangeSampleSpacing.html"); 
@@ -250,50 +250,11 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		});
 		t.start();
 	}
-	
-	protected void start(LdmFilesProvider provider)
-	{
-		if (sendData)
-			return;
-
-		sendData = true;
-
-		ldmFilesProvider = provider;
-
-		// start main measurement thread
-		Thread t = new Thread(new Runnable()
-		{
-			public void run()
-			{
-				while (sendData)
-				{
-					try {
-						Path p = ldmFilesProvider.nextFile();
-						logger.debug("Reading {}" , p.toString());
-						LdmLevel2Reader reader = new LdmLevel2Reader();
-						long t1 = System.currentTimeMillis();
-						List<LdmRadial> radials = reader.read(p.toFile());
-						long t2 = System.currentTimeMillis();
-						System.out.println("Took " + (t2 - t1));
-						if(radials == null) { 
-							continue;
-						}
-						sendRadials(radials);
-					} catch (IOException e) {
-						e.printStackTrace(System.err);
-						logger.error(e.getMessage());
-						continue;
-					}
-				}
-			}
-		});
-		t.start();
-	}
 
 	private void sendRadials(List<LdmRadial> radials) throws IOException
 	{
 		for(LdmRadial radial: radials) {
-			//			// build and publish datablock
+			// build and publish datablock
 			DataArray refArr = (DataArray)nexradStruct.getComponent(13);
 			DataArray velArr = (DataArray)nexradStruct.getComponent(14);
 			DataArray swArr = (DataArray)nexradStruct.getComponent(15);
@@ -302,7 +263,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			MomentDataBlock refMomentData = radial.momentData.get("REF");
 			MomentDataBlock velMomentData = radial.momentData.get("VEL");
 			MomentDataBlock swMomentData = radial.momentData.get("SW");
-			
+//
 			if(refMomentData == null) {
 				refArr.updateSize(1);
 			} else {
@@ -314,14 +275,14 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			} else {
 				velArr.updateSize(velMomentData.numGates);
 			}
-			
+
 			if(swMomentData == null) {
 				swArr.updateSize(1);
 			} else {
 				swArr.updateSize(swMomentData.numGates);
 			}
 			DataBlock nexradBlock = nexradStruct.createDataBlock();
-
+//
 			long days = radial.dataHeader.daysSince1970;
 			long ms = radial.dataHeader.msSinceMidnight;
 			double utcTime = (double)(AwsNexradUtil.toJulianTime(days, ms)/1000.);
@@ -329,7 +290,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			nexradBlock.setStringValue(1, radial.dataHeader.siteId);
 			nexradBlock.setDoubleValue(2, radial.dataHeader.elevationAngle);
 			nexradBlock.setDoubleValue(3, radial.dataHeader.azimuthAngle);
-
+//
 			float [] f = new float[1];
 			if(refMomentData != null) {
 				nexradBlock.setShortValue(4, refMomentData.rangeToCenterOfFirstGate);
@@ -358,7 +319,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 				nexradBlock.setShortValue(11, (short)0);
 				nexradBlock.setIntValue(12, 1);
 			}
-			
+
 			if(refMomentData != null) {
 				((DataBlockMixed)nexradBlock).getUnderlyingObject()[13].setUnderlyingObject(refMomentData.getData());
 			} else {
@@ -377,37 +338,10 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			}
 
 			//System.out.printf("r,v,s: %d,%d,%d\n", refMomentData.numGates, velMomentData.numGates, swMomentData.numGates);
-
-			//			int blockCnt = 0;
-			//			for(MomentDataBlock data: radial.momentData) {
-			//				int blockIdx;
-			//				System.out.println(data.blockName + ": " + data.getData().length);
-			//				switch(data.blockName) {
-			//				case "REF":
-			//					((DataBlockMixed)nexradBlock).getUnderlyingObject()[7].setUnderlyingObject(data.getData());
-			//					blockCnt++;
-			//					break;
-			//				case "VEL":
-			//					((DataBlockMixed)nexradBlock).getUnderlyingObject()[8].setUnderlyingObject(data.getData());
-			//					blockCnt++;
-			//					break;
-			//				case "SW":
-			//					((DataBlockMixed)nexradBlock).getUnderlyingObject()[9].setUnderlyingObject(data.getData());
-			//					blockCnt++;
-			//					break;
-			//				default:
-			//					// PHI/RHO/ZDR - may support these later
-			//					break;
-			//				}
-			//				if(blockCnt == 3)  break;
-			//			}
-			//			if(blockCnt < 3) {
-			//				//  we're missing a product, but shouldn't break the publishing at least
-			//			}
-
 			latestRecord = nexradBlock;
 			eventHandler.publishEvent(new SensorDataEvent((long)utcTime * 1000L, NexradOutput.this, nexradBlock));
 		}
+		
 	}
 
 	//	private void sendRadial() throws IOException

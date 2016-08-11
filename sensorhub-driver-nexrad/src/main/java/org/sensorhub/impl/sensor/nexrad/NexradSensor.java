@@ -109,10 +109,10 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		
 	}
 
-	@Override
-	public void init(NexradConfig config) throws SensorHubException
+//	@Override
+	public void init() throws SensorHubException
 	{
-		super.init(config);
+		super.init();
 		try {
 			chunkQueue = new ChunkPathQueue(Paths.get(config.rootFolder, config.siteIds.get(0)));
 		} catch (IOException e) {
