@@ -405,7 +405,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
     @Override
     protected void updateSensorDescription()
     {
-        synchronized (sensorDescription)
+        synchronized (sensorDescLock)
         {
         	System.out.println("Updating Sensor Description...");
         	// set identifiers in SensorML

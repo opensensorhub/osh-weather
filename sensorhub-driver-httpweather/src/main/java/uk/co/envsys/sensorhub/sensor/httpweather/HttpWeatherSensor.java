@@ -57,7 +57,7 @@ public class HttpWeatherSensor extends AbstractSensorModule<HttpWeatherConfig> {
 	
 	@Override
     protected void updateSensorDescription() {
-        synchronized (sensorDescription) {
+        synchronized (sensorDescLock) {
             super.updateSensorDescription();
             sensorDescription.setId("HTTP_WEATHER");
             sensorDescription.setUniqueIdentifier(UID_PREFIX + UUID.randomUUID());

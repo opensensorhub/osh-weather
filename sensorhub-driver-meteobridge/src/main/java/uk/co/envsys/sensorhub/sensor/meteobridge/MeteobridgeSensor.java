@@ -56,7 +56,7 @@ public class MeteobridgeSensor extends AbstractSensorModule<MeteobridgeConfig>{
 	
 	@Override
     protected void updateSensorDescription() {
-        synchronized (sensorDescription) {
+        synchronized (sensorDescLock) {
             super.updateSensorDescription();
             sensorDescription.setId("METEOBRIDGE_WEATHER_STATION");
             sensorDescription.setUniqueIdentifier(UID_PREFIX + config.serialNumber);
