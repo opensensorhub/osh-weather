@@ -339,7 +339,8 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 
 			//System.out.printf("r,v,s: %d,%d,%d\n", refMomentData.numGates, velMomentData.numGates, swMomentData.numGates);
 			latestRecord = nexradBlock;
-			eventHandler.publishEvent(new SensorDataEvent((long)utcTime * 1000L, NexradOutput.this, nexradBlock));
+			latestRecordTime = System.currentTimeMillis();
+			eventHandler.publishEvent(new SensorDataEvent(latestRecordTime, NexradOutput.this, nexradBlock));
 		}
 		
 	}
@@ -443,7 +444,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	class CheckNumListeners extends TimerTask {
 		@Override
 		public void run() {
-			int numListeners = ((BasicEventHandler)eventHandler).getNumListeners();
+			int numListeners = eventHandler.getNumListeners();
 			logger.debug("CheckNumListeners = {}",numListeners);
 			if (numListeners > 0) { 
 				try {
