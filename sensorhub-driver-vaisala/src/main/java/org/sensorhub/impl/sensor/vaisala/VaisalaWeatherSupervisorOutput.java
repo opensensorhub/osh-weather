@@ -57,7 +57,7 @@ public class VaisalaWeatherSupervisorOutput extends AbstractSensorOutput<Vaisala
         // build SWE Common record structure
     	weatherDataSup = fac.newDataRecord(DataRecLen);
         weatherDataSup.setName(getName());
-        weatherDataSup.setDefinition("http://sensorml.com/ont/swe/property/Weather");
+        weatherDataSup.setDefinition("http://sensorml.com/ont/swe/property/WeatherData");
         weatherDataSup.setDescription("Supervisor measurements");
         
         // add time, temperature, pressure, wind speed and wind direction fields

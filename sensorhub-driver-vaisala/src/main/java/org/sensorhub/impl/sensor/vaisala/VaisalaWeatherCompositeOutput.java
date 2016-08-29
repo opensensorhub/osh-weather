@@ -69,7 +69,7 @@ public class VaisalaWeatherCompositeOutput extends AbstractSensorOutput<VaisalaW
         // build SWE Common record structure
     	weatherDataComp = fac.newDataRecord(DataRecLen);
         weatherDataComp.setName(getName());
-        weatherDataComp.setDefinition("http://sensorml.com/ont/swe/property/Weather");
+        weatherDataComp.setDefinition("http://sensorml.com/ont/swe/property/WeatherData");
         weatherDataComp.setDescription("Weather measurements");
         
         // add time, temperature, pressure, wind speed and wind direction fields

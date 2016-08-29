@@ -57,7 +57,7 @@ public class VaisalaWeatherPrecipOutput extends AbstractSensorOutput<VaisalaWeat
         // build SWE Common record structure
     	weatherDataPrecip = fac.newDataRecord(DataRecLen);
         weatherDataPrecip.setName(getName());
-        weatherDataPrecip.setDefinition("http://sensorml.com/ont/swe/property/Weather");
+        weatherDataPrecip.setDefinition("http://sensorml.com/ont/swe/property/WeatherData");
         weatherDataPrecip.setDescription("Precipitation measurements");
         
         // add time, temperature, pressure, wind speed and wind direction fields

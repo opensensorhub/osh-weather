@@ -59,7 +59,7 @@ public class VaisalaWeatherWindOutput extends AbstractSensorOutput<VaisalaWeathe
         // build SWE Common record structure
     	weatherDataWind = fac.newDataRecord(DataRecLen);
         weatherDataWind.setName(getName());
-        weatherDataWind.setDefinition("http://sensorml.com/ont/swe/property/Weather");
+        weatherDataWind.setDefinition("http://sensorml.com/ont/swe/property/WeatherData");
         weatherDataWind.setDescription("Wind measurements");
         
         // add time, temperature, pressure, wind speed and wind direction fields
@@ -69,7 +69,7 @@ public class VaisalaWeatherWindOutput extends AbstractSensorOutput<VaisalaWeathe
         //System.out.println("");
         //System.out.println("aR1 Wind Sensor Settings...");
         
-        // compare wind settings bits and add appropriate data components to block
+        //compare wind settings bits and add appropriate data components to block
         //System.out.println("Dn Bit = " + WindSettings.charAt(0));
         if (WindSettings.charAt(0) == '1')
         {
