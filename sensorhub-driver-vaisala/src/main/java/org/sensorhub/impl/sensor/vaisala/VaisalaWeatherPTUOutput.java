@@ -58,7 +58,7 @@ public class VaisalaWeatherPTUOutput extends AbstractSensorOutput<VaisalaWeather
         // build SWE Common record structure
     	weatherDataPTU = fac.newDataRecord(DataRecLen);
         weatherDataPTU.setName(getName());
-        weatherDataPTU.setDefinition("http://sensorml.com/ont/swe/property/Weather");
+        weatherDataPTU.setDefinition("http://sensorml.com/ont/swe/property/WeatherData");
         weatherDataPTU.setDescription("PTU measurements");
         
         // add time, temperature, pressure, wind speed and wind direction fields

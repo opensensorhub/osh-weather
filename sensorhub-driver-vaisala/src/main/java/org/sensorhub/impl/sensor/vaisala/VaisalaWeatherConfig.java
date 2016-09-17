@@ -12,7 +12,7 @@ public class VaisalaWeatherConfig extends SensorConfig
 	public String serialNumber = "aaa0001bb";
 	
     @DisplayInfo(label="Communication Settings", desc="Settings for selected communication port")
-    public CommProviderConfig commSettings;
+    public CommProviderConfig<?> commSettings;
     
 //    @DisplayInfo(desc="Station Location")
 //    public LLALocation location = new LLALocation();
