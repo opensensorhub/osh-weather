@@ -251,6 +251,38 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		t.start();
 	}
 
+	RadialProvider radialProvider;
+	protected void start(RadialProvider provider)
+	{
+		this.radialProvider = provider;
+		
+		if (sendData)
+			return;
+
+		sendData = true;
+
+		// start sending of radials
+		Thread t = new Thread(new Runnable()
+		{
+			public void run()
+			{
+				while (sendData)
+				{
+					try {
+						List<LdmRadial> radials = radialProvider.getNextRadials();
+						System.err.println("Read " + radials.size() + " radials");
+						sendRadials(radials);
+					} catch (IOException e) {
+						e.printStackTrace();
+						continue;
+					}
+				}
+			}
+		});
+		t.start();
+	}
+
+	
 	private void sendRadials(List<LdmRadial> radials) throws IOException
 	{
 		for(LdmRadial radial: radials) {

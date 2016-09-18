@@ -34,11 +34,17 @@ public class NexradConfig extends SensorConfig
     
 	@DisplayInfo(desc="Path to incoming Nexrad Files")
     public String rootFolder;
-	public Path siteFolder;
+//	public Path siteFolder;
+	
+	//  Realtime AWS controls
 	public int numThreads;
 	public String queueName = "NexradQueue_SensorHub_001";  // default name
 	public long queueIdleTimeMinutes = 240;
 	public int queueFileLimit = 8;  // number of files in the disk queue to accumulate before forcing older files out 
+	
+	//  Archive AWS controls
+	public String archiveStartTime;
+	public String archiveStopTime;
 	
 	public NexradSite site;  // 
 	
@@ -51,5 +57,4 @@ public class NexradConfig extends SensorConfig
 		}
 		return null;  // throw exception?
 	}
-
 }

@@ -11,7 +11,7 @@ package org.sensorhub.impl.sensor.nexrad;
  *  NOTE:  a lot of the UCAR methods are deprecated. They are based on TypedDataset, which is deprecated.  
  *        But RadialDatasetSweep extends TypedDataset and is not deprecated.  Not worrying about it for now. 
  */
-
+@Deprecated  // Use UcarLevel2Reader
 public class Level2Reader {
 	
 //	public  Sweep readSweep(String source, Level2Product prod) throws IOException{

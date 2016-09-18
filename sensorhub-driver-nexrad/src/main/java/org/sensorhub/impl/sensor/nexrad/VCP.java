@@ -2,7 +2,9 @@ package org.sensorhub.impl.sensor.nexrad;
 
 /**
  * <p>Title: VCP.java</p>
- * <p>Description: </p>
+ * <p>Description: Enum of VCP modes employed by Nexrad 88D scanning radars.
+ *  http://wx.db.erau.edu/faculty/mullerb/Wx365/Volume_coverage_patterns/vcp.html
+ * </p>
  *
  * @author tcook
  * @date Sep 16, 2016

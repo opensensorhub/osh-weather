@@ -140,6 +140,11 @@ public class UcarUtil
 		return VCP.getVCP(num.intValue());
 	}
 	
+	public static boolean hasSuperRes(NetcdfFile file) throws IOException {
+		Variable var = file.findVariable("Reflectivity_HI");
+		return (var == null) ? false: true;
+	}
+	
 	public static void dumpAttributeInfo(NetcdfFile file) throws IOException {
 		System.err.println("==========   ATTS  =================");
 		List<Attribute> atts= file.getGlobalAttributes();
@@ -222,6 +227,7 @@ public class UcarUtil
 	public static void main(String[] args) throws Exception {
 		NetcdfDataset ds = NetcdfDataset.openDataset("C:/Data/sensorhub/Level2/archive/KBMX/kbmxTest2");
 		dumpAttributeInfo(ds);
+		System.err.println(hasSuperRes(ds));
 		List<String> vnames = getVariableNames(ds);
 //		for(String s: vnames)
 //			System.err.println(s);

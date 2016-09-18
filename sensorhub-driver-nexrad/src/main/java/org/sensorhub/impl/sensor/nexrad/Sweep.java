@@ -16,6 +16,7 @@ import org.sensorhub.impl.sensor.nexrad.Radial;
  *   TODO- separate into Sweep (for az,el) and rasterSweep 
  */
 
+@Deprecated // Use LdmRadial
 public class Sweep
 {
 	protected List<Radial> radials = new ArrayList<>();

@@ -22,14 +22,17 @@ import ucar.nc2.dataset.NetcdfDataset;
  * @since Sep 8, 2016
  */
 
-public class UcarLevel2Reader implements RadialProvider 
+public class UcarLevel2Reader
 {
 	NetcdfDataset netCdf;
 	
+	public UcarLevel2Reader() {
+	}
 	
 	public UcarLevel2Reader(File f) throws IOException {
 		netCdf = NetcdfDataset.openDataset(f.getCanonicalPath());
 	}
+
 	
 	private Array getArray(String name) throws IOException {
 		Variable dataVar = getVariable(name);
@@ -159,22 +162,31 @@ public class UcarLevel2Reader implements RadialProvider
 		return radials;
 	}
 	
+	public List<LdmRadial> read() throws IOException {
+		List<LdmRadial> rads = new ArrayList<>();
+		if(UcarUtil.hasSuperRes(netCdf)) {
+			List<LdmRadial> hiResRads = read(true);
+			rads.addAll(hiResRads);
+		}
+		List<LdmRadial> standardRaesRads = read(false);
+		rads.addAll(standardRaesRads);
+
+		return rads;
+	}
+	
 	public static void main(String[] args) throws Exception {
 		File f = new File("C:/Data/sensorhub/Level2/archive/KBMX/kbmxTest2");
 		UcarLevel2Reader reader = new UcarLevel2Reader(f);
-
-		List<LdmRadial> rads = reader.read(true);
+		
+		List<LdmRadial> rads = new ArrayList<>();
+		if(UcarUtil.hasSuperRes(reader.netCdf)) {
+			List<LdmRadial> hiResRads = reader.read(true);
+			rads.addAll(hiResRads);
+		}
+		List<LdmRadial> standardRaesRads = reader.read(false);
+		rads.addAll(standardRaesRads);
 		for(LdmRadial rad: rads)
 			System.err.println(rad);
 		System.err.println("Done");
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sensorhub.impl.sensor.nexrad.RadialProvider#getNextRadial()
-	 */
-	@Override
-	public LdmRadial getNextRadial() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 }

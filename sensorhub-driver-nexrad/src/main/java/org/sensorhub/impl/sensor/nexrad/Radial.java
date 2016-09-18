@@ -1,11 +1,33 @@
 package org.sensorhub.impl.sensor.nexrad;
 
+@Deprecated // Use LdmRadial
 public class Radial {
 	protected int numGates;
 	protected long radialStartTime;  // Utc in MS
 	protected float elevation, azimuth;
     protected short [] dataShort;   // if data is short/unsigned byte
     protected float [] dataFloat;   // if data is float
+    protected short rangeToCenterOfFirstGate; // meters
+	protected short rangeGateSize; // meters
+
+    /**
+	 * @return the rangeGateSize
+	 */
+	public final short getRangeGateSize() {
+		return rangeGateSize;
+	}
+	/**
+	 * @param rangeGateSize the rangeGateSize to set
+	 */
+	public final void setRangeGateSize(short rangeGateSize) {
+		this.rangeGateSize = rangeGateSize;
+	}
+	public final short getRangeToCenterOfFirstGate() {
+		return rangeToCenterOfFirstGate;
+	}
+	public final void setRangeToCenterOfFirstGate(short rangeToCenterOfFirstGate) {
+		this.rangeToCenterOfFirstGate = rangeToCenterOfFirstGate;
+	}
     
 	public int getNumGates() {
 		return numGates;

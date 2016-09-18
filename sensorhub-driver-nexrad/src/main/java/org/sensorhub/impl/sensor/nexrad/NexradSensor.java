@@ -15,11 +15,13 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.sensor.nexrad;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
@@ -35,19 +37,25 @@ import net.opengis.sensorml.v20.PhysicalSystem;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.impl.sensor.AbstractSensorModule;
+import org.sensorhub.impl.sensor.nexrad.aws.AwsNexradUtil;
 import org.sensorhub.impl.sensor.nexrad.aws.NexradSqsService;
 import org.sensorhub.impl.sensor.nexrad.aws.sqs.ChunkPathQueue;
+import org.sensorhub.impl.sensor.nexrad.ucar.ArchiveRadialProvider;
+import org.sensorhub.impl.sensor.nexrad.ucar.UcarLevel2Reader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.sensorML.SMLHelper;
+
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 
 /**
  * <p>
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
- * @since Nov 2, 2014
+ * @author Tony Cook <tony.coook@opensensorhub.org>
  */
 public class NexradSensor extends AbstractSensorModule<NexradConfig> implements IMultiSourceDataProducer
 {
@@ -55,18 +63,23 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	static final String SITE_UID_PREFIX = "urn:test:sensors:weather:nexrad";
 
 	NexradOutput dataInterface;
-	//	ICommProvider<? super CommConfig> commProvider;
+	RadialProvider radialProvider;  // either Realtime or archive AWS source
+
+	//  Realtime queue parameters
 	ChunkPathQueue chunkQueue;
 	private NexradSqsService nexradSqs;
-
-	Set<String> foiIDs;
-	Map<String, PhysicalSystem> siteFois;
-	Map<String, PhysicalSystem> siteDescs;
-
 	long queueIdleTime;
 	boolean queueActive = false;
 	static final long QUEUE_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(1);
 	long queueIdleTimeMillis;
+	
+	//  Archive 
+	
+	
+	Set<String> foiIDs;
+	Map<String, PhysicalSystem> siteFois;
+	Map<String, PhysicalSystem> siteDescs;
+
 
 	public NexradSensor() throws SensorHubException
 	{
@@ -108,17 +121,13 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		}
 		
 	}
-
-//	@Override
-	public void init() throws SensorHubException
-	{
-		super.init();
+	
+	public void initRealtimeProvider() throws SensorHubException {
 		try {
 			chunkQueue = new ChunkPathQueue(Paths.get(config.rootFolder, config.siteIds.get(0)));
 		} catch (IOException e) {
 			throw new SensorHubException(e.getMessage(), e);
 		}
-
 		
 		logger.debug("QueueIdleTimeMinutes: {}", config.queueIdleTimeMinutes);
 		queueIdleTimeMillis = TimeUnit.MINUTES.toMillis(config.queueIdleTimeMinutes);
@@ -132,9 +141,25 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		Timer queueTimer = new Timer();  //At this line a new Thread will be created
 	    queueTimer.scheduleAtFixedRate(new CheckQueueStatus(), 0, QUEUE_CHECK_INTERVAL); //delay in milliseconds
 
+//		dataInterface = new NexradOutput(this);
+//		addOutput(dataInterface, false);
+//		dataInterface.init();		
+	}
+
+	public void initArchiveProvider() throws SensorHubException {
+		radialProvider = new ArchiveRadialProvider(config.rootFolder, config.siteIds.get(0), config.archiveStartTime, config.archiveStopTime);
+	}
+	
+	public void init() throws SensorHubException
+	{
+		if(config.archiveStartTime != null && config.archiveStopTime != null) {
+			initArchiveProvider();
+		} else {
+			initRealtimeProvider();
+		}
 		dataInterface = new NexradOutput(this);
 		addOutput(dataInterface, false);
-		dataInterface.init();
+		dataInterface.init();	
 	}
 
 
@@ -158,7 +183,6 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 			}
 		}
 	}
-
 
 	@Override
 	public void start() throws SensorHubException
@@ -193,11 +217,10 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 			sensorDesc.setName(name);
 			sensorDesc.setDescription(description);
 			siteDescs.put(uid, sensorDesc);
-
-
 		}
 
-		dataInterface.start(chunkQueue); 
+//		dataInterface.start(chunkQueue); 
+		dataInterface.start(radialProvider); 
 	}
 
 

@@ -1,5 +1,8 @@
 package org.sensorhub.impl.sensor.nexrad;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.sensorhub.impl.sensor.nexrad.aws.LdmRadial;
 
 /**
@@ -16,5 +19,5 @@ import org.sensorhub.impl.sensor.nexrad.aws.LdmRadial;
 public interface RadialProvider {
 	
 	public LdmRadial getNextRadial();
-	
+	public List<LdmRadial>  getNextRadials() throws IOException;
 }
