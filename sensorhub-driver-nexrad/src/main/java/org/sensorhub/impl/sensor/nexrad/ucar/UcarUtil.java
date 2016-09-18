@@ -6,6 +6,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.Days;
 import org.sensorhub.impl.sensor.nexrad.VCP;
 
 import ucar.ma2.Array;
@@ -140,6 +143,20 @@ public class UcarUtil
 		return VCP.getVCP(num.intValue());
 	}
 	
+	public static short getDaysSince1970(NetcdfFile file) {
+		Attribute dateAtt = file.findGlobalAttribute("base_date");
+		if(dateAtt == null)
+			return 0; // throw exception since we can't compute time without this attribute?
+		String dateStr = dateAtt.getStringValue();
+		int yr = Integer.parseInt(dateStr.substring(0,4));
+		int month = Integer.parseInt(dateStr.substring(5,7));
+		int day = Integer.parseInt(dateStr.substring(8,10));
+		DateTime baseDt = new DateTime(yr, month, day, 0, 0, DateTimeZone.forID("UTC"));
+		DateTime dt1970 = new DateTime(1970, 1, 1, 0, 0, DateTimeZone.forID("UTC"));
+		Integer days = Days.daysBetween(dt1970, baseDt).getDays();
+		return days.shortValue();
+	}
+	
 	public static boolean hasSuperRes(NetcdfFile file) throws IOException {
 		Variable var = file.findVariable("Reflectivity_HI");
 		return (var == null) ? false: true;
@@ -224,11 +241,20 @@ public class UcarUtil
 		}
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) {
+		DateTime baseDt = new DateTime(2016, 9, 16, 0, 0, DateTimeZone.forID("UTC"));
+		DateTime dt1970 = new DateTime(2016,9,15, 0, 0, DateTimeZone.forID("UTC"));
+		Integer days = Days.daysBetween(dt1970, baseDt).getDays();
+		System.err.println(days);
+
+	}
+	
+	public static void main_(String[] args) throws Exception {
 		NetcdfDataset ds = NetcdfDataset.openDataset("C:/Data/sensorhub/Level2/archive/KBMX/kbmxTest2");
 		dumpAttributeInfo(ds);
 		System.err.println(hasSuperRes(ds));
 		List<String> vnames = getVariableNames(ds);
+		System.err.println(getDaysSince1970(ds));
 //		for(String s: vnames)
 //			System.err.println(s);
 	}

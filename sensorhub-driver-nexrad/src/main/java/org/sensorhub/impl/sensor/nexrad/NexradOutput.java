@@ -270,7 +270,9 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 				{
 					try {
 						List<LdmRadial> radials = radialProvider.getNextRadials();
-						System.err.println("Read " + radials.size() + " radials");
+						if(radials == null)
+							continue;
+//						System.err.println("Read " + radials.size() + " radials");
 						sendRadials(radials);
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -285,6 +287,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	
 	private void sendRadials(List<LdmRadial> radials) throws IOException
 	{
+		int i=0;
 		for(LdmRadial radial: radials) {
 			// build and publish datablock
 			DataArray refArr = (DataArray)nexradStruct.getComponent(13);
@@ -318,6 +321,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			long days = radial.dataHeader.daysSince1970;
 			long ms = radial.dataHeader.msSinceMidnight;
 			double utcTime = (double)(AwsNexradUtil.toJulianTime(days, ms)/1000.);
+			long utcTimeMs = AwsNexradUtil.toJulianTime(days, ms);
 			nexradBlock.setDoubleValue(0, utcTime);
 			nexradBlock.setStringValue(1, radial.dataHeader.siteId);
 			nexradBlock.setDoubleValue(2, radial.dataHeader.elevationAngle);

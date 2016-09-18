@@ -125,16 +125,18 @@ public class UcarLevel2Reader
 		float [] distanceV = get1dFloatData(UcarUtil.DISTANCE + "V" + (hiRes ? "_HI" : "") ); // distance of each gate?
 		//   appears SW has same az/el/numRadials/etc as Velocity
 		
+		short daysSince1970 = getDaysSince1970();
+		
 		List<LdmRadial> radials = new ArrayList<>();
 		for(int i=0; i<numRadialsV.length; i++){
-			System.err.println("Sweep " + i);
 			for(int j=0; j<numRadialsR[i]; j++) {
 				
 				LdmRadial radial = new LdmRadial();
-				DataHeader header = new DataHeader();
-				header.azimuthAngle = azimuthV[i][j];
-				header.elevationAngle = elevationV[i][j];
-//				radial.timeMsUtc = toUtcTime(time[i][j]);
+				radial.dataHeader = new DataHeader();
+				radial.dataHeader.daysSince1970 = daysSince1970;
+				radial.dataHeader.msSinceMidnight = timeR[i][j];
+				radial.dataHeader.azimuthAngle = azimuthV[i][j];
+				radial.dataHeader.elevationAngle = elevationV[i][j];
 				
 				MomentDataBlock refBlock = new MomentDataBlock("REF");
 				int elevation = (hasSplitCuts && hiRes) ? i*2 : i; 
@@ -149,7 +151,7 @@ public class UcarLevel2Reader
 				velBlock.rangeToCenterOfFirstGate = (short)distanceV[0];
 				velBlock.rangeSampleInterval = getRangeSampleInterval(distanceV);
 				velBlock.setData(vel[i][j]);
-				if(j%100  == 0)  System.err.println(elevationV[i][j]);
+//				if(j%100  == 0)  System.err.println(elevationV[i][j]);
 				
 				MomentDataBlock swBlock = new MomentDataBlock("SW");
 				swBlock.numGates = (short)numGatesV[i];
@@ -174,10 +176,15 @@ public class UcarLevel2Reader
 		return rads;
 	}
 	
+	private short getDaysSince1970() {
+		short days = UcarUtil.getDaysSince1970(netCdf);
+		return days;
+	}
+	
 	public static void main(String[] args) throws Exception {
 		File f = new File("C:/Data/sensorhub/Level2/archive/KBMX/kbmxTest2");
 		UcarLevel2Reader reader = new UcarLevel2Reader(f);
-		
+		UcarUtil.dumpAttributeInfo(reader.netCdf);
 		List<LdmRadial> rads = new ArrayList<>();
 		if(UcarUtil.hasSuperRes(reader.netCdf)) {
 			List<LdmRadial> hiResRads = reader.read(true);
