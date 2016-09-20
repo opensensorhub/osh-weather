@@ -329,6 +329,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 //
 			float [] f = new float[1];
 			if(refMomentData != null) {
+//				System.err.println(refMomentData.numGates);
 				nexradBlock.setShortValue(4, refMomentData.rangeToCenterOfFirstGate);
 				nexradBlock.setShortValue(5, refMomentData.rangeSampleInterval);
 				nexradBlock.setIntValue(6, refMomentData.numGates);
@@ -357,6 +358,8 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 			}
 
 			if(refMomentData != null) {
+//				float [] d = refMomentData.getData();
+//				for(float ff: d)  System.err.println(ff);
 				((DataBlockMixed)nexradBlock).getUnderlyingObject()[13].setUnderlyingObject(refMomentData.getData());
 			} else {
 				((DataBlockMixed)nexradBlock).getUnderlyingObject()[13].setUnderlyingObject(f);

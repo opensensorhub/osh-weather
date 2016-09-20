@@ -4,11 +4,15 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import org.apache.commons.io.FileUtils;
+import org.sensorhub.impl.sensor.nexrad.RadialProvider;
 import org.sensorhub.impl.sensor.nexrad.aws.AwsNexradUtil;
+import org.sensorhub.impl.sensor.nexrad.aws.LdmLevel2Reader;
+import org.sensorhub.impl.sensor.nexrad.aws.LdmRadial;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +27,7 @@ import com.amazonaws.services.s3.model.S3Object;
  * @author T
  * @date Jul 27, 2016
  */
-public class ChunkPathQueue
+public class ChunkPathQueue implements RadialProvider
 {
 	// Create priorityQueue for each site
 	//  either this class manages them all, or multiple instances one per site
@@ -38,7 +42,7 @@ public class ChunkPathQueue
 	boolean first = true;
 	static final int START_SIZE = 3;
 	static final int SIZE_LIMIT = 12;
-	
+
 	public ChunkPathQueue(Path dataFolder) throws IOException {
 		this.siteFolder = dataFolder;
 		//  Make sure the target folder exists
@@ -144,5 +148,32 @@ public class ChunkPathQueue
 
 	public void setS3client(AmazonS3Client s3client) {
 		this.s3client = s3client;
+	}
+
+	/* (non-Javadoc)
+	 * @see org.sensorhub.impl.sensor.nexrad.RadialProvider#getNextRadial()
+	 */
+	@Override
+	public LdmRadial getNextRadial() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/* (non-Javadoc)
+	 * @see org.sensorhub.impl.sensor.nexrad.RadialProvider#getNextRadials()
+	 */
+	@Override
+	public List<LdmRadial> getNextRadials() throws IOException {
+		try {
+			Path p = nextFile();
+			logger.debug("Reading {}" , p.toString());
+			LdmLevel2Reader reader = new LdmLevel2Reader();
+			List<LdmRadial> radials = reader.read(p.toFile());
+			return radials;
+		} catch (IOException e) {
+			e.printStackTrace(System.err);
+			logger.error(e.getMessage());
+			return null;
+		}	
 	}
 }

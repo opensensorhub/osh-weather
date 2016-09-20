@@ -15,40 +15,27 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.sensor.nexrad;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.TimeUnit;
+
+import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.data.IMultiSourceDataProducer;
+import org.sensorhub.impl.sensor.AbstractSensorModule;
+import org.sensorhub.impl.sensor.nexrad.aws.sqs.RealtimeRadialProvider;
+import org.sensorhub.impl.sensor.nexrad.ucar.ArchiveRadialProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.vast.sensorML.SMLHelper;
 
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.Point;
 import net.opengis.gml.v32.impl.GMLFactory;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.sensorml.v20.PhysicalSystem;
-
-import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.data.IMultiSourceDataProducer;
-import org.sensorhub.impl.sensor.AbstractSensorModule;
-import org.sensorhub.impl.sensor.nexrad.aws.AwsNexradUtil;
-import org.sensorhub.impl.sensor.nexrad.aws.NexradSqsService;
-import org.sensorhub.impl.sensor.nexrad.aws.sqs.ChunkPathQueue;
-import org.sensorhub.impl.sensor.nexrad.ucar.ArchiveRadialProvider;
-import org.sensorhub.impl.sensor.nexrad.ucar.UcarLevel2Reader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.vast.sensorML.SMLHelper;
-
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 
 /**
@@ -64,17 +51,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 
 	NexradOutput dataInterface;
 	RadialProvider radialProvider;  // either Realtime or archive AWS source
-
-	//  Realtime queue parameters
-	ChunkPathQueue chunkQueue;
-	private NexradSqsService nexradSqs;
-	long queueIdleTime;
-	boolean queueActive = false;
-	static final long QUEUE_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(1);
-	long queueIdleTimeMillis;
-	
-	//  Archive 
-	
+	boolean isRealtime;
 	
 	Set<String> foiIDs;
 	Map<String, PhysicalSystem> siteFois;
@@ -89,73 +66,23 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	}
 
 	public void setQueueActive() throws IOException {
-		if(!queueActive) {
-			nexradSqs = new NexradSqsService(config.queueName, config.siteIds);
-			nexradSqs.setNumThreads(config.numThreads);
-			// design issue here in that nexradSqs needs chunkQueue and chunkQueue needs s3client.  
-			nexradSqs.setChunkQueue(chunkQueue);  // 
-			chunkQueue.setS3client(nexradSqs.getS3client());  //
-			nexradSqs.start();
-			queueActive = true;
-		} 
+		if(isRealtime)
+			((RealtimeRadialProvider)radialProvider).setQueueActive();
 	}
 	
 	public void setQueueIdle() {
-		if(!queueActive)
-			return;
-		queueIdleTime = System.currentTimeMillis();
+		if(isRealtime)
+			((RealtimeRadialProvider)radialProvider).setQueueIdle();
 	}
 
-	class CheckQueueStatus extends TimerTask {
-
-		@Override
-		public void run() {
-			logger.debug("Check queue.  QueueActive = {}" , queueActive);
-			if(!queueActive)
-				return;
-			if(System.currentTimeMillis() - queueIdleTime > queueIdleTimeMillis) {
-				logger.debug("Check Queue. Stopping unused queue... ");
-				nexradSqs.stop();
-				queueActive = false;
-			}
-		}
-		
-	}
-	
-	public void initRealtimeProvider() throws SensorHubException {
-		try {
-			chunkQueue = new ChunkPathQueue(Paths.get(config.rootFolder, config.siteIds.get(0)));
-		} catch (IOException e) {
-			throw new SensorHubException(e.getMessage(), e);
-		}
-		
-		logger.debug("QueueIdleTimeMinutes: {}", config.queueIdleTimeMinutes);
-		queueIdleTimeMillis = TimeUnit.MINUTES.toMillis(config.queueIdleTimeMinutes);
-		queueIdleTime = System.currentTimeMillis();
-		try {
-			setQueueActive();
-		} catch (IOException e) {
-			throw new SensorHubException(e.getMessage());
-		}
-		
-		Timer queueTimer = new Timer();  //At this line a new Thread will be created
-	    queueTimer.scheduleAtFixedRate(new CheckQueueStatus(), 0, QUEUE_CHECK_INTERVAL); //delay in milliseconds
-
-//		dataInterface = new NexradOutput(this);
-//		addOutput(dataInterface, false);
-//		dataInterface.init();		
-	}
-
-	public void initArchiveProvider() throws SensorHubException {
-		radialProvider = new ArchiveRadialProvider(config.rootFolder, config.siteIds.get(0), config.archiveStartTime, config.archiveStopTime);
-	}
-	
 	public void init() throws SensorHubException
 	{
 		if(config.archiveStartTime != null && config.archiveStopTime != null) {
-			initArchiveProvider();
+			radialProvider = new ArchiveRadialProvider(config);
+			isRealtime = false;
 		} else {
-			initRealtimeProvider();
+			radialProvider = new RealtimeRadialProvider(config);
+			isRealtime = true;
 		}
 		dataInterface = new NexradOutput(this);
 		addOutput(dataInterface, false);
@@ -219,19 +146,16 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 			siteDescs.put(uid, sensorDesc);
 		}
 
-//		dataInterface.start(chunkQueue); 
-		dataInterface.start(radialProvider); 
+ 		dataInterface.start(radialProvider); 
 	}
 
 
 	@Override
 	public void stop() throws SensorHubException
 	{
-		// stop taking Paths off the queue
 		dataInterface.stop();
-		// delete the Amazaon Queue or it will keep collecting messages
-		if(queueActive)
-			nexradSqs.stop();  
+		if(isRealtime)
+			((RealtimeRadialProvider)radialProvider).stop();
 	}
 
 

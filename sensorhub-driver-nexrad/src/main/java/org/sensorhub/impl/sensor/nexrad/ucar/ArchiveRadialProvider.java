@@ -6,7 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-import org.sensorhub.impl.sensor.nexrad.NexradSite;
+import org.sensorhub.impl.sensor.nexrad.NexradConfig;
 import org.sensorhub.impl.sensor.nexrad.RadialProvider;
 import org.sensorhub.impl.sensor.nexrad.aws.AwsNexradUtil;
 import org.sensorhub.impl.sensor.nexrad.aws.LdmRadial;
@@ -31,12 +31,12 @@ public class ArchiveRadialProvider implements RadialProvider {
 	String site;
 	int volumeIndex = 0;
 	
-	public ArchiveRadialProvider(String rootFolder, String site, String startTime, String stopTime) {
-		this.rootFolder = Paths.get(rootFolder);
+	public ArchiveRadialProvider(NexradConfig config) {
+		this.rootFolder = Paths.get(config.rootFolder);
 		//  assert rootFolder exists and is dir
-		this.site = site;
+		this.site = config.siteIds.get(0);
 		s3client = AwsNexradUtil.createS3Client();
-		summaries = AwsNexradUtil.listFiles(s3client, site, startTime, stopTime);
+		summaries = AwsNexradUtil.listFiles(s3client, site, config.archiveStartTime, config.archiveStopTime);
 	}
 	
 	public File getFile(S3ObjectSummary s) throws IOException {

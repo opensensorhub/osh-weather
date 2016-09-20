@@ -145,19 +145,23 @@ public class UcarLevel2Reader
 				refBlock.rangeSampleInterval = getRangeSampleInterval(distanceR);
 				refBlock.setData(ref[elevation][j]);
 				float []  data = refBlock.getData();
-				
+				radial.momentData.put(refBlock.blockName, refBlock);
+
 				MomentDataBlock velBlock = new MomentDataBlock("VEL");
 				velBlock.numGates = (short)numGatesV[i];
 				velBlock.rangeToCenterOfFirstGate = (short)distanceV[0];
 				velBlock.rangeSampleInterval = getRangeSampleInterval(distanceV);
 				velBlock.setData(vel[i][j]);
 //				if(j%100  == 0)  System.err.println(elevationV[i][j]);
+				radial.momentData.put(velBlock.blockName, velBlock);
+
 				
 				MomentDataBlock swBlock = new MomentDataBlock("SW");
 				swBlock.numGates = (short)numGatesV[i];
 				swBlock.rangeToCenterOfFirstGate = (short)distanceV[0];
 				swBlock.rangeSampleInterval = velBlock.rangeSampleInterval;
 				swBlock.setData(sw[i][j]);
+				radial.momentData.put(swBlock.blockName, swBlock);
 				radials.add(radial);
 			}
 		}
