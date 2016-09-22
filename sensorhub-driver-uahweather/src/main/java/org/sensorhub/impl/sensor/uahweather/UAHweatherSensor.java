@@ -153,7 +153,7 @@ public class UAHweatherSensor extends AbstractSensorModule<UAHweatherConfig>
     	{
 			e.printStackTrace();
 		}
-    	//weatherOut.sendOutput(timeMillis, BaroPres, Temp);
+    	weatherOut.sendOutput(timeMillis, BaroPres);
     }
     
     @Override

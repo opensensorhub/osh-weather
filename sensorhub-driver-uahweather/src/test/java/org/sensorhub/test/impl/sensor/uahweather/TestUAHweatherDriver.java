@@ -91,7 +91,7 @@ public class TestUAHweatherDriver implements IEventListener
     public void testSendMeasurements() throws Exception
     {
         System.out.println();
-        ISensorDataInterface weatherOutput = sensor.getObservationOutputs().get("UAHweather");
+        ISensorDataInterface weatherOutput = sensor.getObservationOutputs().get("UAH Weather");
         writer = new AsciiDataWriter();
         writer.setDataEncoding(new TextEncodingImpl(",", "\n"));
         writer.setDataComponents(weatherOutput.getRecordDescription());
@@ -100,7 +100,7 @@ public class TestUAHweatherDriver implements IEventListener
         weatherOutput.registerListener(this);
         sensor.start();
         
-        Thread.sleep(30000);
+        Thread.sleep(10000);
         
         sensor.stop();
         
