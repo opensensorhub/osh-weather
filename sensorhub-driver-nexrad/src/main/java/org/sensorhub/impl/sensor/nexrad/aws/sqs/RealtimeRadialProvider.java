@@ -1,6 +1,7 @@
 package org.sensorhub.impl.sensor.nexrad.aws.sqs;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -43,6 +44,9 @@ public class RealtimeRadialProvider implements RadialProvider {
 
 	public void initChunkPathQueue() throws SensorHubException {
 		try {
+			Path rootPath = Paths.get(config.rootFolder); 
+			if(!Files.isDirectory(rootPath))
+				throw new SensorHubException("Configured rootFolder does not exist or is not a directory" + config.rootFolder);
 			chunkQueue = new ChunkPathQueue(Paths.get(config.rootFolder, config.siteIds.get(0)));
 		} catch (IOException e) {
 			throw new SensorHubException(e.getMessage(), e);
