@@ -100,7 +100,7 @@ public class TestUAHweatherDriver implements IEventListener
         weatherOutput.registerListener(this);
         sensor.start();
         
-        Thread.sleep(10000);
+        Thread.sleep(30000);
         
         sensor.stop();
         

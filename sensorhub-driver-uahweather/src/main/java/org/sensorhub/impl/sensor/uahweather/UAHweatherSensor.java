@@ -137,23 +137,36 @@ public class UAHweatherSensor extends AbstractSensorModule<UAHweatherConfig>
     private void getMeasurement()
     {	
     	String msg = null;
-    	double BaroPres = 0.00;
-    	double Temp = 0.00;
-    	double RelHum = 0.00;
+    	double BaroPres = -9999.99;
+    	float Temp = -9999;
+    	float Humid = -9999;
+    	float windSpeed = -9999;
+    	int windDir = -9999;
+    	byte rainCnt = -99;
     	long timeMillis = System.currentTimeMillis(); 
     	try
     	{
             msg = dataIn.readLine();
             System.out.println("Message: " + msg);
-            msgToken = msg.split(" ");
-            //BaroPres = Integer.parseInt(msgToken[0].replace(".", ""),16);
-            //Temp = Integer.parseInt(msgToken[1],16);
+            msgToken = msg.split(",");
+            BaroPres = Double.parseDouble(msgToken[0]);
+            Temp = Float.parseFloat(msgToken[1]);
+            Humid = Float.parseFloat(msgToken[2]);
+            windSpeed = Float.parseFloat(msgToken[3]);
+            windDir = Integer.parseInt(msgToken[4]);
+            //rainCnt = Byte.parseByte(msgToken[5]);
+            
+            System.out.println("msgToken[0] = " + msgToken[0]);
+            System.out.println("msgToken[1] = " + msgToken[1]);
+            System.out.println("msgToken[2] = " + msgToken[2]);
+            System.out.println("msgToken[3] = " + msgToken[3]);
+            System.out.println("msgToken[4] = " + msgToken[4]);
 		}
     	catch (Exception e)
     	{
 			e.printStackTrace();
 		}
-    	weatherOut.sendOutput(timeMillis, BaroPres);
+    	weatherOut.sendOutput(timeMillis, BaroPres, Temp, Humid, windSpeed, windDir, rainCnt);
     }
     
     @Override

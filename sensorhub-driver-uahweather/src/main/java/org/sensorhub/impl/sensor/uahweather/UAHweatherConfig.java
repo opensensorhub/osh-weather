@@ -9,11 +9,11 @@ public class UAHweatherConfig extends SensorConfig
 {
 	@Required
     @DisplayInfo(desc="Sensor serial number (used as suffix to generate unique identifier URI)")
-    public String serialNumber = "000001";
+    public String serialNumber = "001";
 	
 	@Required
     @DisplayInfo(desc="Sensor model number (used as suffix to generate unique identifier URI)")
-    public String modelNumber = "1A";
+    public String modelNumber = "A";
 	
 	
     @DisplayInfo(label="Communication Settings", desc="Settings for selected communication port")
