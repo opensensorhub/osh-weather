@@ -2,10 +2,13 @@ package org.sensorhub.impl.sensor.nexrad.ucar;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
+import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.impl.sensor.nexrad.NexradConfig;
 import org.sensorhub.impl.sensor.nexrad.RadialProvider;
 import org.sensorhub.impl.sensor.nexrad.aws.AwsNexradUtil;
@@ -30,15 +33,22 @@ public class ArchiveRadialProvider implements RadialProvider {
 	Path rootFolder;
 	String site;
 	int volumeIndex = 0;
-	
-	public ArchiveRadialProvider(NexradConfig config) {
-		this.rootFolder = Paths.get(config.rootFolder);
-		//  assert rootFolder exists and is dir
-		this.site = config.siteIds.get(0);
+
+	public ArchiveRadialProvider(NexradConfig config) throws SensorHubException {
+		try {
+			this.rootFolder = Paths.get(config.rootFolder);
+			if(!Files.isDirectory(rootFolder))
+				throw new SensorHubException("Configured rootFolder does not exist or is not a directory" + config.rootFolder);
+			this.site = config.siteIds.get(0);
+			Path sitePath = Paths.get(rootFolder.toString(), site);
+			FileUtils.forceMkdir(sitePath.toFile());
+		} catch (IOException e) {
+			throw new SensorHubException(e.getMessage(), e);
+		}
 		s3client = AwsNexradUtil.createS3Client();
 		summaries = AwsNexradUtil.listFiles(s3client, site, config.archiveStartTime, config.archiveStopTime);
 	}
-	
+
 	public File getFile(S3ObjectSummary s) throws IOException {
 		String key = s.getKey();
 		S3Object obj = AwsNexradUtil.getChunk(s3client, AwsNexradUtil.ARCHIVE_BUCKET_NAME, key);
@@ -60,9 +70,9 @@ public class ArchiveRadialProvider implements RadialProvider {
 		} catch (IOException e) {
 			throw new IOException(e);
 		}
-		
+
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.sensorhub.impl.sensor.nexrad.RadialProvider#getNextRadial()
 	 */
