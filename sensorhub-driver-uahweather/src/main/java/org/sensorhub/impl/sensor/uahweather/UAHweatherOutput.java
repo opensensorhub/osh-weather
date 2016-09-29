@@ -59,8 +59,8 @@ public class UAHweatherOutput extends AbstractSensorOutput<UAHweatherSensor>
     @Override
     public double getAverageSamplingPeriod()
     {
-    	// sample every 5 seconds
-        return 5.0;
+    	// sample every 15 seconds
+        return 15.0;
     }
 
 
