@@ -44,7 +44,7 @@ public class UAHweatherOutput extends AbstractSensorOutput<UAHweatherSensor>
         dataStruct.addComponent("temperature", fac.newQuantity(SWEHelper.getPropertyUri("Temperature"), "Air Temperature", null, "degC"));
         dataStruct.addComponent("relHumidity", fac.newQuantity(SWEHelper.getPropertyUri("RelativeHumidity"), " Relative Humidity", null, "%"));
         dataStruct.addComponent("windSpeed", fac.newQuantity(SWEHelper.getPropertyUri("WindSpeed"), "Wind Speed", null, "m/s"));
-        Quantity q = fac.newQuantity(SWEHelper.getPropertyUri("WindDirection"), "Wind Direction", null, "adc");
+        Quantity q = fac.newQuantity(SWEHelper.getPropertyUri("WindDirection"), "Wind Direction", null, "deg");
         q.setReferenceFrame("http://sensorml.com/ont/swe/property/NED");
         q.setAxisID("z");
         dataStruct.addComponent("windDir", q);
@@ -59,8 +59,8 @@ public class UAHweatherOutput extends AbstractSensorOutput<UAHweatherSensor>
     @Override
     public double getAverageSamplingPeriod()
     {
-    	// sample every 1 second
-        return 1.0;
+    	// sample every 5 seconds
+        return 5.0;
     }
 
 
@@ -78,15 +78,20 @@ public class UAHweatherOutput extends AbstractSensorOutput<UAHweatherSensor>
     }
     
     
-    protected void sendOutput(long msgTime, double airPres, float airTemp, float humid, float windSpeed, int windDir, byte rainCnt)
+    protected void sendOutput(long msgTime, double airPres, float airTemp, float humid, float windSpeed, double windDirDeg, byte rainCnt)
     {
-    	DataBlock dataBlock = dataStruct.createDataBlock();
-    	dataBlock.setLongValue(0, msgTime);
-    	dataBlock.setDoubleValue(1, airPres);
-    	dataBlock.setFloatValue(2, airTemp);
-    	dataBlock.setFloatValue(3, humid);
-    	dataBlock.setFloatValue(4, windSpeed);
-    	dataBlock.setIntValue(5, windDir);
+    	DataBlock dataBlock;
+    	if (latestRecord == null)
+    	    dataBlock = dataStruct.createDataBlock();
+    	else
+    	    dataBlock = latestRecord.renew();
+    	
+    	dataBlock.setLongValue(0, msgTime/1000);
+    	dataBlock.setDoubleValue(1, Math.round(airPres*100.0)/100.0);
+    	dataBlock.setFloatValue(2, Math.round(airTemp*100)/100);
+    	dataBlock.setFloatValue(3, Math.round(humid*100)/100);
+    	dataBlock.setFloatValue(4, Math.round(windSpeed*100)/100);
+    	dataBlock.setDoubleValue(5, windDirDeg);
     	dataBlock.setByteValue(6, rainCnt);
     	
     	
