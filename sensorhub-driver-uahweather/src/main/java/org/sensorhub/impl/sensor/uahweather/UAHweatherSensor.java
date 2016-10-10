@@ -149,13 +149,13 @@ public class UAHweatherSensor extends AbstractSensorModule<UAHweatherConfig>
     	{
             msg = dataIn.readLine();
             System.out.println("Message: " + msg);
-            msgToken = msg.split(",");
+            msgToken = msg.split("\t");
             BaroPres = Double.parseDouble(msgToken[0]);
             Temp = Float.parseFloat(msgToken[1]);
             Humid = Float.parseFloat(msgToken[2]);
-            windSpeed = Float.parseFloat(msgToken[3]);
-            windDirADC = Integer.parseInt(msgToken[4]);
-            //rainCnt = Byte.parseByte(msgToken[5]);
+            rainCnt = Byte.parseByte(msgToken[3]);
+            windSpeed = Float.parseFloat(msgToken[4]);
+            windDirADC = Integer.parseInt(msgToken[5]);
             
             if (windDirADC != -9999)
             	windDirDeg = windDirADC*360/1024;
@@ -165,7 +165,7 @@ public class UAHweatherSensor extends AbstractSensorModule<UAHweatherConfig>
     	{
 			e.printStackTrace();
 		}
-    	weatherOut.sendOutput(timeMillis, BaroPres, Temp, Humid, windSpeed, windDirDeg, rainCnt);
+    	weatherOut.sendOutput(timeMillis, BaroPres, Temp, Humid, rainCnt, windSpeed, windDirDeg);
     }
     
     @Override
