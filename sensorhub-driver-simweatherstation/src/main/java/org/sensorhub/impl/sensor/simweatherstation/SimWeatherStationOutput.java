@@ -21,20 +21,20 @@ public class SimWeatherStationOutput extends AbstractSensorOutput<SimWeatherStat
     Random rand = new Random();
     
     // reference values around which actual values vary
+    double pressRef = 987.5;
     double tempRef = 30.0;
     double humidRef = 35.0;
-    double pressRef = 987.5;
+    double rainRef = 2.0;
     double windSpeedRef = 1.0;
     double directionRef = 0.0;
-    double rainRef = 0.0;
     
     // initialize then keep new values for each measurement
+    double press = pressRef;
     double temp = tempRef;
     double humid = humidRef;
-    double press = pressRef;
+    double rain = rainRef;
     double windSpeed = windSpeedRef;
     double windDir = directionRef;
-    double rain = rainRef;
     
     public SimWeatherStationOutput(SimWeatherStationSensor parentSensor)
     {
@@ -65,12 +65,13 @@ public class SimWeatherStationOutput extends AbstractSensorOutput<SimWeatherStat
         dataStruct.addComponent("pressure", fac.newQuantity(SWEHelper.getPropertyUri("BarometricPressure"), "Barometric Pressure", null, "mbar"));
         dataStruct.addComponent("temperature", fac.newQuantity(SWEHelper.getPropertyUri("Temperature"), "Air Temperature", null, "degC"));
         dataStruct.addComponent("relHumidity", fac.newQuantity(SWEHelper.getPropertyUri("RelativeHumidity"), " Relative Humidity", null, "%"));
+        dataStruct.addComponent("rainAccum", fac.newQuantity(SWEHelper.getPropertyUri("RainAccumulation"), "Rain Accumulation", null, "tips"));
         dataStruct.addComponent("windSpeed", fac.newQuantity(SWEHelper.getPropertyUri("WindSpeed"), "Wind Speed", null, "m/s"));
         Quantity q = fac.newQuantity(SWEHelper.getPropertyUri("WindDirection"), "Wind Direction", null, "deg");
         q.setReferenceFrame("http://sensorml.com/ont/swe/property/NED");
         q.setAxisID("z");
         dataStruct.addComponent("windDir", q);
-        dataStruct.addComponent("rainAccum", fac.newQuantity(SWEHelper.getPropertyUri("RainAccumulation"), "Rain Accumulation", null, "mm"));
+        
         /*************************************************************************************************************************************/
         
         // also generate encoding definition
@@ -80,7 +81,7 @@ public class SimWeatherStationOutput extends AbstractSensorOutput<SimWeatherStat
     private void sendMeasurement()
     {	
     	// generate new weather values
-    	double time = System.currentTimeMillis() / 1000.;
+    	long time = System.currentTimeMillis();
         
         // pressure; value will increase or decrease by less than 20 hPa
         press += variation(press, pressRef, -0.001, 0.1);
@@ -90,6 +91,9 @@ public class SimWeatherStationOutput extends AbstractSensorOutput<SimWeatherStat
         
         // humidity; value will increase or decrease by less than 0.5%
         humid += variation(humid, humidRef, -0.001, 0.5);
+        
+        // rain; value will increase or decrease by less than 1 mm
+        rain += variation(rain, rainRef, -0.001, 1.0);
 
         // wind speed; keep positive
         // vary value between +/- 10 m/s
@@ -101,9 +105,6 @@ public class SimWeatherStationOutput extends AbstractSensorOutput<SimWeatherStat
         windDir = windDir < 0.0 ? windDir+360.0 : windDir;
         windDir = windDir > 360.0 ? windDir-360.0 : windDir;
         
-        // rain; value will increase or decrease by less than 1 mm
-        temp += variation(temp, tempRef, -0.001, 1);
-        
         parentSensor.getLogger().trace(String.format("press=%4.2f, temp=%5.2f, humid=%5.2f, wind speed=%5.2f, wind dir=%3.1f, rain=%5.1f", press, temp, humid, windSpeed, windDir, rain));
         
         DataBlock dataBlock;
@@ -113,14 +114,13 @@ public class SimWeatherStationOutput extends AbstractSensorOutput<SimWeatherStat
     	    dataBlock = latestRecord.renew();
     	
     	dataBlock.setDoubleValue(0, time/1000);
-    	dataBlock.setDoubleValue(1, press);
-    	dataBlock.setDoubleValue(2, temp);
-    	dataBlock.setDoubleValue(3, humid);
-    	dataBlock.setDoubleValue(4, windSpeed);
-    	dataBlock.setDoubleValue(5, windDir);
-    	dataBlock.setDoubleValue(6, rain);
-    	
-    	
+    	dataBlock.setDoubleValue(1, Math.round(press*100.0)/100.0);
+    	dataBlock.setDoubleValue(2, Math.round(temp*100.0)/100.0);
+    	dataBlock.setDoubleValue(3, Math.round(humid*100.0)/100.0);
+    	dataBlock.setDoubleValue(4, Math.round(rain));
+    	dataBlock.setDoubleValue(5, Math.round(windSpeed*100.0)/100.0);
+    	dataBlock.setDoubleValue(6, Math.round(windDir*100.0)/100.0);
+
     	// update latest record and send event
         latestRecord = dataBlock;
         latestRecordTime = System.currentTimeMillis();
@@ -163,7 +163,7 @@ public class SimWeatherStationOutput extends AbstractSensorOutput<SimWeatherStat
     public double getAverageSamplingPeriod()
     {
     	// sample every 5 seconds
-        return 5.0;
+        return 15.0;
     }
 
 
