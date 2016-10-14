@@ -21,12 +21,12 @@ public class SimWeatherStationOutput extends AbstractSensorOutput<SimWeatherStat
     Random rand = new Random();
     
     // reference values around which actual values vary
-    double pressRef = 987.5;
+    double pressRef = 990.0;
     double tempRef = 30.0;
     double humidRef = 35.0;
     double rainRef = 2.0;
-    double windSpeedRef = 1.0;
-    double directionRef = 0.0;
+    double windSpeedRef = 5.0;
+    double windDirRef = 120.0;
     
     // initialize then keep new values for each measurement
     double press = pressRef;
@@ -34,7 +34,7 @@ public class SimWeatherStationOutput extends AbstractSensorOutput<SimWeatherStat
     double humid = humidRef;
     double rain = rainRef;
     double windSpeed = windSpeedRef;
-    double windDir = directionRef;
+    double windDir = windDirRef;
     
     public SimWeatherStationOutput(SimWeatherStationSensor parentSensor)
     {
@@ -83,27 +83,36 @@ public class SimWeatherStationOutput extends AbstractSensorOutput<SimWeatherStat
     	// generate new weather values
     	long time = System.currentTimeMillis();
         
-        // pressure; value will increase or decrease by less than 20 hPa
-        press += variation(press, pressRef, -0.001, 0.1);
+        // pressure; value will increase or decrease by no more than 1 mbar
+    	press = press + Math.random() - Math.random();
+    	if (press < 980 || press > 1000)
+    		press = pressRef + Math.random() - Math.random();
         
-        // temperature; value will increase or decrease by less than 0.1 deg
-        temp += variation(temp, tempRef, -0.001, 0.1);
+        // temperature; value will increase or decrease by no more than 1 deg
+    	temp = temp + Math.random() - Math.random();
+    	if (temp < 25 || temp > 35)
+    		temp = tempRef + Math.random() - Math.random();
         
-        // humidity; value will increase or decrease by less than 0.5%
-        humid += variation(humid, humidRef, -0.001, 0.5);
+        // humidity; value will increase or decrease by no more than 1%
+    	humid = humid + Math.random() - Math.random();
+    	if (humid < 30 || humid > 40)
+    		humid = humidRef + Math.random() - Math.random();
         
-        // rain; value will increase or decrease by less than 1 mm
-        rain += variation(rain, rainRef, -0.001, 1.0);
+        // rain; value will increase or decrease by no more than 1 tip
+    	rain = rain + Math.random() - Math.random();
+    	if (rain < 0 || rain > 5)
+    		rain = rainRef + Math.random() - Math.random();
 
         // wind speed; keep positive
-        // vary value between +/- 10 m/s
-        windSpeed += variation(windSpeed, windSpeedRef, -0.001, 0.1);
-        windSpeed = windSpeed < 0.0 ? 0.0 : windSpeed; 
+        // vary value between +/- 1 m/s
+    	windSpeed = windSpeed + Math.random() - Math.random();
+    	if (windSpeed < 0 || windSpeed > 10)
+    		windSpeed = windSpeedRef + Math.random() - Math.random();
         
         // wind direction; keep between 0 and 360 degrees
-        windDir += 1.0 * (2.0 * Math.random() - 1.0);
-        windDir = windDir < 0.0 ? windDir+360.0 : windDir;
-        windDir = windDir > 360.0 ? windDir-360.0 : windDir;
+    	windDir = windDir + Math.random() - Math.random();
+    	if (windDir < 0 || windDir >= 360)
+    		windDir = windDirRef + Math.random() - Math.random();
         
         parentSensor.getLogger().trace(String.format("press=%4.2f, temp=%5.2f, humid=%5.2f, wind speed=%5.2f, wind dir=%3.1f, rain=%5.1f", press, temp, humid, windSpeed, windDir, rain));
         
@@ -125,11 +134,6 @@ public class SimWeatherStationOutput extends AbstractSensorOutput<SimWeatherStat
         latestRecord = dataBlock;
         latestRecordTime = System.currentTimeMillis();
         eventHandler.publishEvent(new SensorDataEvent(latestRecordTime, SimWeatherStationOutput.this, dataBlock));
-    }
-    
-    private double variation(double val, double ref, double dampingCoef, double noiseSigma)
-    {
-        return -dampingCoef*(val - ref) + noiseSigma*rand.nextGaussian();
     }
     
     protected void start()
