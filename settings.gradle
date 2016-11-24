@@ -2,12 +2,12 @@ rootProject.name = 'osh-sensors-weather'
 gradle.ext.oshCoreDir = "$rootDir/../osh-core"
 gradle.ext.oshCommDir = "$rootDir/../osh-comm"
 
-// include core or comm build if present locally
+// include core and comm builds if present locally
 // comment this to build against published artifacts
+if (new File(gradle.oshCoreDir).exists())
+  includeBuild gradle.oshCoreDir
 if (new File(gradle.oshCommDir).exists())
   includeBuild gradle.oshCommDir
-else if (new File(gradle.oshCoreDir).exists())
-  includeBuild gradle.oshCoreDir
   
 // include all folders with build.gradle as subprojects
 FileTree subprojects = fileTree(rootDir).include('**/build.gradle')
