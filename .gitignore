@@ -1,3 +1,6 @@
-**/target
+**/bin/
+**/target/
+**/build/
+**/.gradle/
 **/.DStore
 **/.DS_Store
