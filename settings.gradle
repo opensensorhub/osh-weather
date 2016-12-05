@@ -2,10 +2,13 @@ rootProject.name = 'osh-sensors-weather'
 gradle.ext.oshCoreDir = "$rootDir/../osh-core"
 gradle.ext.oshCommDir = "$rootDir/../osh-comm"
 
-// include osh-core and osh-comm builds
+// include osh-core and osh-comm builds only if not part of larger build
+// this is needed to avoid nested composite builds
 // comment this to build against published artifacts
-includeBuild gradle.oshCoreDir
-includeBuild gradle.oshCommDir
+if (gradle.parent == null) {
+  includeBuild gradle.oshCoreDir
+  includeBuild gradle.oshCommDir
+}
   
 // include all folders with build.gradle as subprojects
 FileTree subprojects = fileTree(rootDir).include('**/build.gradle')
