@@ -3,6 +3,9 @@ version = oshCoreVersion
 
 
 subprojects {
+  // inject all repositories from included builds if any
+  repositories.addAll(rootProject.repositories)
+  
   // add project dependency to proper configuration depending on version
   // this is used to build different zip distributions
   afterEvaluate { p ->
