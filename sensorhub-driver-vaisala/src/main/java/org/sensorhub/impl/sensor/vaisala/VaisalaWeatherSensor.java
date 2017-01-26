@@ -27,7 +27,6 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
     BufferedWriter dataOut;
     BufferedReader reader;
     BufferedWriter writer;
-    VaisalaWeatherCompositeOutput dataInterface;
     VaisalaWeatherCompositeOutput compOut;
     VaisalaWeatherWindOutput windOut;
     VaisalaWeatherPrecipOutput precipOut;
