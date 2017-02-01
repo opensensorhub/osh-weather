@@ -25,8 +25,6 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
     DataComponent weatherData;
     BufferedReader dataIn;
     BufferedWriter dataOut;
-    BufferedReader reader;
-    BufferedWriter writer;
     VaisalaWeatherCompositeOutput compOut;
     VaisalaWeatherWindOutput windOut;
     VaisalaWeatherPrecipOutput precipOut;
@@ -514,7 +512,7 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
                   getMeasurement();
               }
               
-              reader = null;
+              dataIn = null;
           }
       });
       
@@ -528,9 +526,9 @@ public class VaisalaWeatherSensor extends AbstractSensorModule<VaisalaWeatherCon
     {
     	started = false;
       
-      if (reader != null)
+      if (dataIn != null)
       {
-          try { reader.close(); }
+          try { dataIn.close(); }
           catch (IOException e) { }
       }
       

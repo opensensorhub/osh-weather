@@ -56,8 +56,8 @@ public class TestVaisalaWeatherDriver implements IEventListener
         
         RxtxSerialCommProviderConfig serialConf = new RxtxSerialCommProviderConfig();
         //serialConf.portName = "/dev/tty.usbserial";
-        serialConf.protocol.portName = "/dev/ttyUSB0";
-        serialConf.protocol.baudRate = 19200;
+        serialConf.protocol.portName = "/dev/rfcomm0";
+        serialConf.protocol.baudRate = 9600;
         //serialConf.receiveThreshold = 1;
         //serialConf.protocol.receiveTimeout = 1000;
         config.commSettings = serialConf;
