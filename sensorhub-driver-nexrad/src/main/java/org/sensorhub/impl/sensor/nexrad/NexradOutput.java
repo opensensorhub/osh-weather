@@ -211,44 +211,8 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 		swData.setElementCount(numSwGates); 
 		nexradStruct.addComponent("SpectrumWidth", swData);
 
-		//		encoding = SWEHelper.getDefaultBinaryEncoding(nexradStruct);
-		encoding = fac.newTextEncoding();
-	}
-
-	protected void start(ChunkPathQueue provider)
-	{
-		if (sendData)
-			return;
-
-		sendData = true;
-
-		chunkQueue = provider;
-
-		// start main measurement thread
-		Thread t = new Thread(new Runnable()
-		{
-			public void run()
-			{
-				while (sendData)
-				{
-					try {
-						Path p = chunkQueue.nextFile();
-						logger.debug("Reading {}" , p.toString());
-						LdmLevel2Reader reader = new LdmLevel2Reader();
-						List<LdmRadial> radials = reader.read(p.toFile());
-						if(radials == null) { 
-							continue;
-						}
-						sendRadials(radials);
-					} catch (IOException e) {
-						e.printStackTrace(System.err);
-						logger.error(e.getMessage());
-						continue;
-					}
-				}
-			}
-		});
-		t.start();
+				encoding = SWEHelper.getDefaultBinaryEncoding(nexradStruct);
+//		encoding = fac.newTextEncoding();
 	}
 
 	RadialProvider radialProvider;
@@ -471,8 +435,6 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor>
 	public long getLatestRecordTime()
 	{
 		if (latestRecord != null) {
-			long t = latestRecord.getLongValue(0);
-			DateTime dt = new DateTime(t*1000);
 			return latestRecord.getLongValue(0) * 1000;
 		}
 

@@ -21,10 +21,13 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.impl.sensor.AbstractSensorModule;
+import org.sensorhub.impl.sensor.nexrad.aws.NexradSqsService;
 import org.sensorhub.impl.sensor.nexrad.aws.sqs.RealtimeRadialProvider;
 import org.sensorhub.impl.sensor.nexrad.ucar.ArchiveRadialProvider;
 import org.slf4j.Logger;
@@ -57,6 +60,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	Map<String, PhysicalSystem> siteFois;
 	Map<String, PhysicalSystem> siteDescs;
 
+	NexradSqsService nexradSqs;
 
 	public NexradSensor() throws SensorHubException
 	{
@@ -66,23 +70,36 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	}
 
 	public void setQueueActive() throws IOException {
-		if(isRealtime)
-			((RealtimeRadialProvider)radialProvider).setQueueActive();
+		if(!isRealtime) 
+			return;
+		nexradSqs.setQueueActive();
+		nexradSqs.setNumThreads(config.numThreads);
+		// design issue here in that nexradSqs needs chunkQueue and chunkQueue needs s3client.  
+//		nexradSqs.setChunkQueue(chunkQueue);  // 
+//		chunkQueue.setS3client(nexradSqs.getS3client());  //
+//		nexradSqs.start();
 	}
 	
 	public void setQueueIdle() {
 		if(isRealtime)
-			((RealtimeRadialProvider)radialProvider).setQueueIdle();
+			nexradSqs.setQueueIdle();
 	}
-
+	
 	public void init() throws SensorHubException
 	{
 		if(config.archiveStartTime != null && config.archiveStopTime != null) {
-			radialProvider = new ArchiveRadialProvider(config);
 			isRealtime = false;
+			radialProvider = new ArchiveRadialProvider(config);
 		} else {
-			radialProvider = new RealtimeRadialProvider(config);
-			isRealtime = true;
+			try {
+				isRealtime = true;
+				nexradSqs = new NexradSqsService(config.queueName, config.siteIds);
+				nexradSqs.setQueueIdleTimeMillis(TimeUnit.MINUTES.toMillis(config.queueIdleTimeMinutes));
+				radialProvider = new RealtimeRadialProvider(nexradSqs, config);
+				setQueueActive();
+			} catch (IOException e) {
+				throw new SensorHubException("Could not instantiate NexradSqsService", e);
+			}
 		}
 		dataInterface = new NexradOutput(this);
 		addOutput(dataInterface, false);
@@ -155,7 +172,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	{
 		dataInterface.stop();
 		if(isRealtime)
-			((RealtimeRadialProvider)radialProvider).stop();
+			nexradSqs.stop();
 	}
 
 
