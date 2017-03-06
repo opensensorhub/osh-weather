@@ -94,5 +94,9 @@ public class ArchiveRadialProvider implements RadialProvider {
 		UcarLevel2Reader reader = new UcarLevel2Reader(file);
 		return reader.read();
 	}
+	
+	public List<LdmRadial> getNextRadials(String site) throws IOException {
+		return null;
+	}
 
 }

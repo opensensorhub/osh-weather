@@ -29,7 +29,7 @@ import com.amazonaws.services.s3.model.S3Object;
  * @author T
  * @date Jul 27, 2016
  */
-public class ChunkPathQueue implements ChunkHandler //implements RadialProvider
+public class ChunkPathQueue 
 {
 	// Create priorityQueue for each site
 	//  either this class manages them all, or multiple instances one per site
@@ -38,14 +38,16 @@ public class ChunkPathQueue implements ChunkHandler //implements RadialProvider
 	PriorityBlockingQueue<String> queue;
 	AmazonS3Client s3client;
 	Path siteFolder; 
+	String site;
 	int vol, chunk;
 	char type;
 	boolean first = true;
 	static final int START_SIZE = 3;  // allow settable
-	static final int SIZE_LIMIT = 12;
+	static final int SIZE_LIMIT = 8;
 
-	public ChunkPathQueue(Path dataFolder) throws IOException {
-		this.siteFolder = dataFolder;
+	public ChunkPathQueue(Path rootFolder, String site) throws IOException {
+		this.siteFolder = Paths.get(rootFolder.toString(), site);
+		this.site = site;
 		//  Make sure the target folder exists
 		FileUtils.forceMkdir(this.siteFolder.toFile());
 		queue = new PriorityBlockingQueue<>();
@@ -152,11 +154,4 @@ public class ChunkPathQueue implements ChunkHandler //implements RadialProvider
 	public void setS3client(AmazonS3Client s3client) {
 		this.s3client = s3client;
 	}
-
-	@Override
-	public void handleChunk(S3Object o) throws IOException {
-		// TODO Auto-generated method stub
-		
-	}
-
 }
