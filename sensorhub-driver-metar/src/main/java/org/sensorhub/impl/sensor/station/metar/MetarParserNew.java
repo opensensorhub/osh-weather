@@ -2,8 +2,6 @@ package org.sensorhub.impl.sensor.station.metar;
 
 
 import java.io.File;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 
@@ -173,17 +171,17 @@ public class MetarParserNew
 				int slashIdx = s.indexOf('/');
 				if(slashIdx == 0)  {// dewPt only
 					String d = s.substring(1);
-					metar.dewPointC = parseTempDew(d);
+					metar.setDewPointC(parseTempDew(d));
 				} else if (slashIdx == s.length() - 1) {  // temp only
 					String d = s.substring(0, slashIdx);
-					metar.temperatureC = parseTempDew(d);
+					metar.setTemperatureC(parseTempDew(d));
 				} else {  // T and Td
 					String [] tdstr = s.split("/");
-					metar.temperatureC = parseTempDew(tdstr[0]);
-					metar.dewPointC = parseTempDew(tdstr[1]);
+					metar.setTemperatureC(parseTempDew(tdstr[0]));
+					metar.setDewPointC(parseTempDew(tdstr[1]));
 				}
 				s = sarr[++fieldCnt];
-				System.err.println("T/TD: " + metar.temperatureC + "/" + metar.dewPointC);
+				System.err.println("T/TD: " + metar.getTemperature() + "/" + metar.getDewPoint());
 			}
 
 			// Altimeter APPPP - Altimeter in inches of Mercury * 100 (mainly US)
@@ -240,7 +238,7 @@ public class MetarParserNew
 		System.err.print("REMARKS: ");
 		int fieldCnt = 0;
 		for(int i=fieldCnt; i<sarr.length; i++) {
-//			System.err.println(sarr[i]);
+			//			System.err.println(sarr[i]);
 			if(sarr[i].startsWith("SLP")) {
 				if(sarr[i].length() == 6) {
 					// assumes 900 < P < 1089.9 - I think this is reasonable and have to assume something to parse 
@@ -255,13 +253,14 @@ public class MetarParserNew
 				if(sarr[i].length() == 9) {  // T/Td in 10ths
 					String ts = sarr[i].substring(1,5);
 					String td = sarr[i].substring(5,9);
-					metar.temperaturePrecise = Double.parseDouble(ts.substring(1)) / 10.0;
-					if(ts.charAt(0) == '1')
-						metar.temperaturePrecise *= -1;
-					metar.dewPointPrecise = Double.parseDouble(td.substring(1)) / 10.0;
-					if(td.charAt(0) == '1')
-						metar.dewPointPrecise *= -1;
-					System.err.println("Prc T/Td: " + metar.temperaturePrecise + "/" + metar.dewPointPrecise + " ... " + sarr[i]);
+					double valT = Double.parseDouble(ts.substring(1)) / 10.0;
+					double valTd = Double.parseDouble(td.substring(1)) / 10.0;
+					double tempP = ts.charAt(0) == '1' ? -1. * valT : valT;
+					metar.setTemperaturePrecise(tempP);
+					double dewP = td.charAt(0) == '1' ? -1. * valTd : valTd;
+					metar.setDewPointPrecise(dewP);
+
+					System.err.println("Prc T/Td: " + metar.getTemperature() + "/" + metar.getDewPoint() + " ... " + sarr[i]);
 				} // something else starting with T
 			} else if (sarr[i].equals("PK")) {
 				if(sarr[i+1].equals("WND" )) {
@@ -298,13 +297,13 @@ public class MetarParserNew
 
 	}
 
-	public static int parseTempDew(String s) {
-		int sign = 1;
+	public static Double parseTempDew(String s) {
+		double sign = 1.;
 		if(s.length() > 1 && s.startsWith("M")) {
-			sign = -1;
+			sign = -1.;
 			s = s.substring(1);
 		}
-		return  sign * Integer.parseInt(s);
+		return  sign * Double.parseDouble(s);
 	}
 
 	//  1 1/2SM
@@ -392,7 +391,7 @@ Example: 36023G33KT 360 degrees heading, 23 kts speed with gusts to 33 kts.
 			endWindIdx = s.indexOf("G");
 			int startGustIdx = endWindIdx + 1;
 			String gustStr = windStr.substring(startGustIdx, windStr.length());
-//			metar.setWindGusts(Double.parseDouble(gustStr));
+			//			metar.setWindGusts(Double.parseDouble(gustStr));
 			metar.windGust = Double.parseDouble(gustStr);
 			//			System.err.println("GUST:  " + gustStr);
 		} else {
@@ -512,17 +511,17 @@ Example: 36023G33KT 360 degrees heading, 23 kts speed with gusts to 33 kts.
 		//		parseWind(new Metar(), "VRB05KT");
 		parseVariableWindDir(new Metar(), "130V190");
 	}
-	
+
 	public static void main(String[] args) throws Exception {
 		MetarParserNew mp = new MetarParserNew();
 		//						File infile = new File("C:/Data/station/metar/wxMsg/SAHOURLY.TXT.3065");
-		File infile = new File("C:/Data/station/metar/2017010716.metar");
-//								File infile = new File("C:/Data/station/metar/NAMSA_EURSA_621377820000.TXT");
-//				File infile = new File("C:/Data/station/metar/testMetar.txt");
+		File infile = new File("C:/Data/sensorhub/metar/SAHOURLY.TXT.2262");
+		//								File infile = new File("C:/Data/station/metar/NAMSA_EURSA_621377820000.TXT");
+		//				File infile = new File("C:/Data/station/metar/testMetar.txt");
 
 		try {
-//												lines = MetarUtil.cleanFile(infile.toPath(), false);
-			List<String> lines = Files.readAllLines(infile.toPath(), Charset.defaultCharset());
+			List<String> lines = MetarUtil.cleanFile(infile.toPath(), false);
+//			lines = Files.readAllLines(infile.toPath(), Charset.defaultCharset());
 
 			for(String l: lines)
 				mp.parseMetar(l);

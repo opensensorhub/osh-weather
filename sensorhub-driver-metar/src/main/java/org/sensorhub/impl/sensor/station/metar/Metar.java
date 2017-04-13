@@ -14,26 +14,28 @@ public class Metar
 	public Date date = null;
 	public long timeUtc;
 	public String stationID = null;
-	public Integer windDirection = null;
+	public Integer windDirection = 0;  // what should this default to for missing data?
 	public Integer windDirectionMin = null;
 	public Integer windDirectionMax = null;
 	public boolean windDirectionIsVariable = false;
-	private Double windSpeed = null; // (in knots x 1.1508 = MPH) - private to force units (think about this)
-	public Double windGust = null; // (in knots x 1.1508 = MPH)
+	private Double windSpeed = Double.NaN;; // (in knots x 1.1508 = MPH) - private to force units (think about this)
+	public Double windGust = Double.NaN;; // (in knots x 1.1508 = MPH)
 	public Integer windDirectionGust = null; // (in knots x 1.1508 = MPH)
 	public boolean isCavok = false;
-	private Double visibilityMiles = null; 
+	private Double visibilityMiles = Double.NaN; 
 	private Double visibilityKilometers = null;
 	public boolean visibilityLessThan = false;
-	public Double pressure = null;
+	public Double pressure = Double.NaN;;
 	public Double altimeter = null;
-	public Integer temperatureC = null;
-	public Double temperature = null;
-	public Double temperaturePrecise = null;
-	public Double dewPoint = null;
-	public Integer dewPointC = null;
-	public Double dewPointPrecise = null;
-	public Double hourlyPrecipInches = null;
+	private Double temperatureC = Double.NaN;
+	private Double temperature = Double.NaN;
+
+	private Double temperaturePrecise = Double.NaN;
+	private Double dewPoint = Double.NaN;
+	private Double dewPointC = Double.NaN;
+
+	private Double dewPointPrecise = Double.NaN;
+	public Double hourlyPrecipInches = Double.NaN;
 	public ArrayList<PresentWeather> presentWeathers = new ArrayList<>();
 	public ArrayList<SkyCondition> skyConditions = new ArrayList<>();
 	public ArrayList<RunwayVisualRange> runwayVisualRanges = new ArrayList<>();
@@ -82,5 +84,42 @@ public class Metar
 	public void addSkyCondition(SkyCondition sc) {
 		this.skyConditions.add(sc);
 	}
+	
+	public String getPresentWeather() {
+		return "";
+	}
+
+	public String getSkyConditions() {
+		return "";
+	}
+
+	public Double getTemperature() {
+		return temperature;
+	}
+
+	public Double getDewPoint() {
+		return dewPoint;
+	}
+
+	public void setTemperatureC(Double temperatureC) {
+		this.temperatureC = temperatureC;
+		this.temperature = MetarUtil.c_to_f(temperatureC); 
+	}
+
+	public void setDewPointC(Double dewPointC) {
+		this.dewPointC = dewPointC;
+		this.dewPoint = MetarUtil.c_to_f(dewPointC); 
+	}
+
+	public void setTemperaturePrecise(Double temperaturePrecise) {
+		this.temperaturePrecise = temperaturePrecise;
+		setTemperatureC(temperaturePrecise);
+	}
+
+	public void setDewPointPrecise(Double dewPointPrecise) {
+		this.dewPointPrecise = dewPointPrecise;
+		setDewPointC(dewPointPrecise);
+	}
 }
+
 

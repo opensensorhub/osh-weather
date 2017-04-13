@@ -1,9 +1,9 @@
 package org.sensorhub.impl.sensor.station.metar;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 
 import org.sensorhub.impl.sensor.station.Station;
@@ -18,6 +18,7 @@ import com.opencsv.CSVReader;
  * @date Sep 26, 2016
  */
 public class MetarStationMap {
+//	private static final String MAP_FILE_PATH = "metarStationsMini.csv";
 	private static final String MAP_FILE_PATH = "metarStations.csv";
 	private HashMap<String, Station> map;
 	private static MetarStationMap instance = null;
@@ -36,6 +37,7 @@ public class MetarStationMap {
 	private void loadMap() throws IOException {
 		ClassLoader classLoader = getClass().getClassLoader();
 		File file = new File(classLoader.getResource(MAP_FILE_PATH).getFile());
+		System.err.println("MMap file: " + file.getCanonicalPath());
 		map = new HashMap<>();
 		
 		CSVReader reader = new CSVReader(new FileReader(file));
@@ -44,6 +46,11 @@ public class MetarStationMap {
 			reader.readNext(); // skip hdr line
 			while ((line = reader.readNext()) != null ) {
 				String id = line[1];
+//				System.err.println(id);
+				if(id.trim().length() < 4) {
+					System.err.println("Skipping stn: " + id);
+					continue;
+				}
 				String name = line[2];
 				double lat = 0.0, lon = 0.0, el = 0.0;
 				if(!line[3].equals(""))
@@ -71,6 +78,10 @@ public class MetarStationMap {
 
 	public Station getStation(String id) {
 		return map.get(id.toUpperCase());
+	}
+	
+	public Collection<Station> getStations() {
+		return map.values();
 	}
 	
 	public static void main(String[] args) throws IOException {

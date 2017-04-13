@@ -39,7 +39,6 @@ StationID,StationName,DisplayName,Latitude,Longitude,Elevation,City,ZipCode,TzTi
 60795,MGGT,La Aurora International Airport,14.5816,-90.5266,4951,Guatamala City,,America/Belize,,,GT,Guatemala,
 60799,NTAT,Fa'a'a International Airport - SW of Papeete,-17.5566,-149.6113,5,Papeete,,US/Aleutian,,,FJ,Fiji Islands,
 60837,SURV,Rivera International Airport - SE of Rivera,-30.9744,-55.4761,712,Rivera,,America/La_Paz,,,UY,Uruguay,
-59464,OT,O. R. Tambo International Airport,-26.1391,28.2461,0,Johannesburg,,Egypt,,,ZA,South Africa,
 59501,SBCD,Carlos Alberto da Costa Neves Airport,-26.7897,-50.9394,3376,Caçador,,Brazil/East,,,BR,Brazil,
 59508,ZGZJ,NW of Zhanjiang,21.2175,110.3577,125,Khanjiang,,Asia/Hong_Kong,,,CN,China,
 59509,ZLIC,Yinchuan/Hedong Airport,38.3216,106.3925,3714,Yinchuan/Hedong,,Asia/Hong_Kong,,,CN,China,
@@ -1311,7 +1310,6 @@ StationID,StationName,DisplayName,Latitude,Longitude,Elevation,City,ZipCode,TzTi
 57942,C002,Harrington Ranch Airport - SW of Bennett,39.6297,-104.518,5975,Bennett,80101,US/Mountain,CO,Colorado,US,United States of America,Arapahoe
 41583,KPSO,Stevens Field Airport - NW of Pagosa Springs,37.28,-107.05,0,Pagosa Springs,81157,US/Mountain,CO,Colorado,US,United States of America,Archuleta
 4527,KSPD,Comanche National Grassland,37.46,-102.62,4380,Springfield,81073,US/Mountain,CO,Colorado,US,United States of America,Baca
-488,COFR-4440,,40,-105,6680,James Creek,80516,US/Mountain,CO,Colorado,US,United States of America,Broomfield
 2776,KBJC,Broomfield/Jeffco,39.9008,-105.1042,5656,Broomfield,80038,US/Mountain,CO,Colorado,US,United States of America,Broomfield
 3275,KFTG,Front Range - Denver-Boulder NEXRAD,39.7842,-104.5376,5512,Denver,80516,US/Mountain,CO,Colorado,US,United States of America,Broomfield
 3939,KMYP,Monarch Pass Reporting Station,38.4844,-106.3169,12031,Monarch Pass,81236,US/Mountain,CO,Colorado,US,United States of America,Chaffee
@@ -2142,7 +2140,7 @@ StationID,StationName,DisplayName,Latitude,Longitude,Elevation,City,ZipCode,TzTi
 53137,KGPH,Midwest National Air Center Airport,39.3325,-94.3096,778,Mosby,64073,US/Central,MO,Missouri,US,United States of America,Clay
 51177,M019,American Legion-Village of Centertown Heliport - SE of Centertown,38.613,-92.4121,805,Centertown,65023,US/Central,MO,Missouri,US,United States of America,Cole
 3584,KJEF,Jefferson City Memorial Airport,38.5912,-92.1561,548,Jefferson City,65102,US/Central,MO,Missouri,US,United States of America,Cole
-45114,KNT,Kennett Memorial Airport... SE of Kennett,36.2258,-90.0366,262,Kennett,63857,US/Central,MO,Missouri,US,United States of America,Dunklin
+45114,KTKX,Kennett Memorial Airport... SE of Kennett,36.2258,-90.0366,262,Kennett,63857,US/Central,MO,Missouri,US,United States of America,Dunklin
 4455,KSGF,Springfield Regional Airport,37.23,-93.38,1280,Springfield,65802,US/Central,MO,Missouri,US,United States of America,Greene
 38443,KGLY,Clinton Memorial Airport - SE of Clinton,38.3565,-93.6842,822,Clinton,64735,US/Central,MO,Missouri,,,Henry
 4720,KUNO,West Plains Municipal Airport,36.73,-91.85,1224,West Plains,65775,US/Central,MO,Missouri,US,United States of America,Howell
@@ -2161,7 +2159,7 @@ StationID,StationName,DisplayName,Latitude,Longitude,Elevation,City,ZipCode,TzTi
 4443,KSET,St. Charles County Smartt Airport,38.9297,-90.43,436,St. Charles,63373,US/Central,MO,Missouri,US,United States of America,St.Charles
 3204,KFAM,Farmington Airport,37.77,-90.43,945,Farmington,63640,US/Central,MO,Missouri,US,United States of America,St.Francois
 4553,KSTL,St. Louis International Airport,38.7525,-90.3734,654,St. Louis,63134,US/Central,MO,Missouri,US,United States of America,St.Louis
-56108,,Gorin,40.4089,-92.0568,740,Howard Airport,63555,US/Central,MO,Missouri,US,United States of America,Scott
+56108,KM77,Gorin,40.4089,-92.0568,740,Howard Airport,63555,US/Central,MO,Missouri,US,United States of America,Scott
 58273,KFWB,Branson West Municipal Airport - Emerson Field - NW of Branson,36.6985,-93.4022,1348,Branson West,65637,US/Central,MO,Missouri,US,United States of America,Stone
 37594,KBBG,NE of Ridgedale,36.53,-93.2,1302,Ridgedale,65739,US/Central,MO,Missouri,,,Taney
 34453,KNVD,NE of Nevada,37.852,-94.3048,892,Nevada,64772,US/Central,MO,Missouri,US,United States of America,Vernon
