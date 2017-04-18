@@ -2,9 +2,16 @@ package org.sensorhub.impl.sensor.station.metar;
 
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoField;
+import java.time.temporal.JulianFields;
 import java.util.Arrays;
 import java.util.List;
 
+import org.joda.time.DateTime;
 import org.sensorhub.impl.sensor.station.metar.MetarConstants.Modifier;
 import org.sensorhub.impl.sensor.station.metar.RunwayVisualRange.Range;
 
@@ -422,8 +429,9 @@ Example: 36023G33KT 360 degrees heading, 23 kts speed with gusts to 33 kts.
 		int slashIdx = s.indexOf('/');
 		if (slashIdx == -1)
 			throw new NumberFormatException("No slash in Runway Vis field: " + s);
-		String runwayId = s.substring(0, slashIdx);
-		RunwayVisualRange rvr = new RunwayVisualRange(runwayId);
+		RunwayVisualRange rvr = new RunwayVisualRange(s);
+		rvr.runwayId = s.substring(0, slashIdx);
+
 		String vis = s.substring(slashIdx + 1, s.length());
 		if(vis.endsWith("FT")) {  //  US
 			rvr.units = "feet";
@@ -484,6 +492,58 @@ Example: 36023G33KT 360 degrees heading, 23 kts speed with gusts to 33 kts.
 
 	/**
 	 * 
+	 * @param year
+	 * @param month
+	 * @param dateStr - standard Metar report date String DDHHMM where DD = day of month, HH = hour of day, MM = minute
+	 * @return epoch seconds since 1970-01-01
+	 * @throws NumberFormatException
+	 */
+	public static long computeTimeUtc(int year, int month, String dateStr) throws NumberFormatException {
+		if(dateStr.length() != 7)
+			throw new NumberFormatException("Invalid dateString: " + dateStr);
+		String day = dateStr.substring(0, 2);
+		String hour = dateStr.substring(2, 4);
+		String minute = dateStr.substring(4, 6);
+
+		int iday = Integer.parseInt(day);
+		int	ihour = Integer.parseInt(hour);
+		int	iminute = Integer.parseInt(minute);
+
+		LocalDateTime dt = LocalDateTime.of(year, month, iday, ihour, iminute, 0, 0);
+		return dt.toEpochSecond(ZoneOffset.UTC);
+	}
+	
+	/**
+	 * 
+	 * @param dateStr - standard Metar report date String DDHHMM where DD = day of month, HH = hour of day, MM = minute
+	 * @return epoch seconds since 1970-01-01
+	 * @throws NumberFormatException
+	 */
+	public static long computeTimeUtc(String dateStr) throws NumberFormatException {
+		if(dateStr.length() != 7)
+			throw new NumberFormatException("Invalid dateString: " + dateStr);
+		String day = dateStr.substring(0, 2);
+		int iday = Integer.parseInt(day);
+
+		//  Check for month changeover using system time.  
+		//  *Assumes* system clock is correct and always ahead of dateStr day/hour/minute fields
+		//  We have to get year and month somehow, as they are not provided in the Metar record format.
+		// For archive ingest, year and month must be provided by the caller using computeTimeUtc(year, month, dateStr)
+		LocalDateTime dtNow = LocalDateTime.now();
+		int year = dtNow.get(ChronoField.YEAR);
+		int month = dtNow.get(ChronoField.MONTH_OF_YEAR);
+		int dayOfMonth = dtNow.get(ChronoField.DAY_OF_MONTH);
+		if(iday > dayOfMonth) {
+			if(--month == 0) {
+				month = 12;
+				--year;
+			}
+		}
+		return computeTimeUtc(year, month, dateStr);
+	}
+	
+	/**
+	 * 
 	 * @param s
 	 * @return true if input string is any string of slashes
 	 */
@@ -513,22 +573,30 @@ Example: 36023G33KT 360 degrees heading, 23 kts speed with gusts to 33 kts.
 	}
 
 	public static void main(String[] args) throws Exception {
-		MetarParserNew mp = new MetarParserNew();
-		//						File infile = new File("C:/Data/station/metar/wxMsg/SAHOURLY.TXT.3065");
-		File infile = new File("C:/Data/sensorhub/metar/SAHOURLY.TXT.2262");
-		//								File infile = new File("C:/Data/station/metar/NAMSA_EURSA_621377820000.TXT");
-		//				File infile = new File("C:/Data/station/metar/testMetar.txt");
-
-		try {
-			List<String> lines = MetarUtil.cleanFile(infile.toPath(), false);
-//			lines = Files.readAllLines(infile.toPath(), Charset.defaultCharset());
-
-			for(String l: lines)
-				mp.parseMetar(l);
-		} catch (Exception e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		
+		long dt = computeTimeUtc("312359Z");
+		long dt2 = computeTimeUtc("010001Z");
+		System.err.println(dt);
+		System.err.println(LocalDateTime.ofEpochSecond(dt, 0, ZoneOffset.UTC));
+		System.err.println(LocalDateTime.ofEpochSecond(dt2, 0, ZoneOffset.UTC));
+		
+		
+//		MetarParserNew mp = new MetarParserNew();
+//		//						File infile = new File("C:/Data/station/metar/wxMsg/SAHOURLY.TXT.3065");
+//		File infile = new File("C:/Data/sensorhub/metar/SAHOURLY.TXT.2262");
+//		//								File infile = new File("C:/Data/station/metar/NAMSA_EURSA_621377820000.TXT");
+//		//				File infile = new File("C:/Data/station/metar/testMetar.txt");
+//
+//		try {
+//			List<String> lines = MetarUtil.cleanFile(infile.toPath(), false);
+////			lines = Files.readAllLines(infile.toPath(), Charset.defaultCharset());
+//
+//			for(String l: lines)
+//				mp.parseMetar(l);
+//		} catch (Exception e1) {
+//			// TODO Auto-generated catch block
+//			e1.printStackTrace();
+//		}
 
 	}
 }

@@ -85,12 +85,20 @@ public class Metar
 		this.skyConditions.add(sc);
 	}
 	
-	public String getPresentWeather() {
-		return "";
+	public String getPresentWeathers() {
+		StringBuilder b = new StringBuilder();
+		for(PresentWeather pw: presentWeathers) {
+			b.append(pw.toString() + ";");
+		}
+		return b.toString();
 	}
 
 	public String getSkyConditions() {
-		return "";
+		StringBuilder b = new StringBuilder();
+		for(SkyCondition sc: skyConditions) {
+			b.append(sc.toString() + ";");
+		}
+		return b.toString();
 	}
 
 	public Double getTemperature() {
@@ -119,6 +127,25 @@ public class Metar
 	public void setDewPointPrecise(Double dewPointPrecise) {
 		this.dewPointPrecise = dewPointPrecise;
 		setDewPointC(dewPointPrecise);
+	}
+
+	public String getRunwayVisualRanges() {
+		StringBuilder b = new StringBuilder();
+		for(RunwayVisualRange rvr: runwayVisualRanges) {
+			b.append(rvr.toString() + ";");
+		}
+		return b.toString();
+	}
+	
+	public Double getRelativeHumidity() {
+//		if(dewPointC == Double.NaN || temperatureC == Double.NaN)
+//			return Double.NaN;
+		if(Double.compare(temperatureC, Double.NaN) == 0)
+			return Double.NaN;
+		if(Double.compare(dewPointC, Double.NaN) == 0)
+			return Double.NaN;
+		
+		return MetarUtil.computeRH(temperatureC, dewPointC);
 	}
 }
 

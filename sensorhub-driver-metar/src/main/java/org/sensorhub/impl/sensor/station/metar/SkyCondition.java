@@ -80,7 +80,10 @@ public class SkyCondition {
 	
 	public String toString() {
 		StringBuilder b = new StringBuilder();
-		b.append(coverage.getDescription() + ": Visibility (ft): " + (  visibilityFeet != null ? visibilityFeet : " Uknown"));
+		
+		b.append(coverage.getDescription());
+		if(coverage != Coverage.CLR && coverage != Coverage.SKC)
+			b.append( "- Visibility (ft): " + (  visibilityFeet != null ? visibilityFeet : " Uknown"));
 		if(isTcu)  b.append(" isTCU");
 		if(isCb)  b.append(" isCB");
 		
@@ -88,7 +91,7 @@ public class SkyCondition {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		String s = "FEW222CB";
+		String s = "CLR";
 		boolean isSc = isSkyCondition(s);
 		SkyCondition sc = parseSkyCondition(s);
 		

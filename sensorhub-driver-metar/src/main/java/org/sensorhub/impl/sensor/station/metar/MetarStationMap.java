@@ -3,6 +3,7 @@ package org.sensorhub.impl.sensor.station.metar;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -23,24 +24,24 @@ public class MetarStationMap {
 	private HashMap<String, Station> map;
 	private static MetarStationMap instance = null;
 	
-	private MetarStationMap() throws IOException {
-		loadMap();
+	private MetarStationMap(String mapPath) throws IOException {
+		loadMap(mapPath);
 	}
 	
-	public static MetarStationMap getInstance() throws IOException {
+	public static MetarStationMap getInstance(String mapPath) throws IOException {
 		if(instance == null)
-			instance = new MetarStationMap();
+			instance = new MetarStationMap(mapPath);
 		
 		return instance;
 	}
 	
-	private void loadMap() throws IOException {
-		ClassLoader classLoader = getClass().getClassLoader();
-		File file = new File(classLoader.getResource(MAP_FILE_PATH).getFile());
-		System.err.println("MMap file: " + file.getCanonicalPath());
+	private void loadMap(String mapPath) throws IOException {
+//		ClassLoader classLoader = getClass().getClassLoader();
+//		File file = new File(classLoader.getResource(MAP_FILE_PATH).getFile());
+		System.err.println("MMap file: " + mapPath);
 		map = new HashMap<>();
 		
-		CSVReader reader = new CSVReader(new FileReader(file));
+		CSVReader reader = new CSVReader(new FileReader(mapPath));
 		try {
 			String [] line;
 			reader.readNext(); // skip hdr line
@@ -85,7 +86,7 @@ public class MetarStationMap {
 	}
 	
 	public static void main(String[] args) throws IOException {
-		MetarStationMap metarMap = MetarStationMap.getInstance();
+		MetarStationMap metarMap = MetarStationMap.getInstance("C:/Users/tcook/root/workOsh/osh-sensors-weather/sensorhub-driver-metar/src/main/resources/metarStations.csv");
 
 		System.err.println(metarMap.getStation("KEVW"));
 	}

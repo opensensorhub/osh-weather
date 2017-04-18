@@ -65,7 +65,12 @@ public class DirectoryWatcher implements Runnable
 				if (kind == StandardWatchEventKinds.ENTRY_CREATE ) {
 					System.out.println("Created: " + filename);
 					for(FileListener l: listeners) {
-						l.newFile(Paths.get(path.toString(), filename.toString()));
+						try {
+							l.newFile(Paths.get(path.toString(), filename.toString()));
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					}
 				}			
 			} 

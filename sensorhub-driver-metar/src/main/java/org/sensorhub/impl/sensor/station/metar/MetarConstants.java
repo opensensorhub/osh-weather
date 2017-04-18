@@ -46,6 +46,10 @@ public interface MetarConstants {
 			this.code = code;
 			this.description = desc;
 		}
+		
+		public String toString() {
+			return description;
+		}
 	}
 	
 	/** Metar string value for fully automated report ('AUTO') */
