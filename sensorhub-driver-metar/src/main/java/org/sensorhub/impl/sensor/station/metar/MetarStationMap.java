@@ -1,6 +1,8 @@
 package org.sensorhub.impl.sensor.station.metar;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,13 +21,13 @@ import com.opencsv.CSVReader;
  * @date Sep 26, 2016
  */
 public class MetarStationMap {
-//	private static final String MAP_FILE_PATH = "metarStationsMini.csv";
 	private static final String MAP_FILE_PATH = "metarStations.csv";
+//	private static final String MAP_FILE_PATH = "stationsAll.txt";
 	private HashMap<String, Station> map;
 	private static MetarStationMap instance = null;
 	
 	private MetarStationMap(String mapPath) throws IOException {
-		loadMap(mapPath);
+		loadCsvMap(mapPath);
 	}
 	
 	public static MetarStationMap getInstance(String mapPath) throws IOException {
@@ -35,9 +37,13 @@ public class MetarStationMap {
 		return instance;
 	}
 	
-	private void loadMap(String mapPath) throws IOException {
-//		ClassLoader classLoader = getClass().getClassLoader();
-//		File file = new File(classLoader.getResource(MAP_FILE_PATH).getFile());
+	private void loadGilbertMap(String mapPath) throws IOException {
+		try (BufferedReader reader = new BufferedReader(new FileReader(mapPath))) {
+			
+		}
+	}
+	
+	private void loadCsvMap(String mapPath) throws IOException {
 		System.err.println("MMap file: " + mapPath);
 		map = new HashMap<>();
 		
