@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.sensor.nexrad;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -56,7 +57,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	NexradOutput dataInterface;
 	RadialProvider radialProvider;  // either Realtime or archive AWS source
 	boolean isRealtime;
-	
+
 	Set<String> foiIDs;
 	Map<String, PhysicalSystem> siteFois;
 	Map<String, PhysicalSystem> siteDescs;
@@ -77,18 +78,25 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 			return;
 		nexradSqs.setQueueActive();
 		nexradSqs.setNumThreads(config.numThreads);
-//		nexradSqs.setChunkQueue(chunkQueue);  // 
-//		chunkQueue.setS3client(nexradSqs.getS3client());  //
-//		nexradSqs.start();
+		//		nexradSqs.setChunkQueue(chunkQueue);  // 
+		//		chunkQueue.setS3client(nexradSqs.getS3client());  //
+		//		nexradSqs.start();
 	}
-	
+
 	public void setQueueIdle() {
 		if(isRealtime)
 			nexradSqs.setQueueIdle();
 	}
-	
+
+	@Override
 	public void init() throws SensorHubException
 	{
+		super.init();
+
+		// generate IDs
+		this.uniqueID = SITE_UID_PREFIX + "network";
+		this.xmlID = "NEXRAD_NETWORK";
+
 		if(config.archiveStartTime != null && config.archiveStopTime != null) {
 			isRealtime = false;
 			radialProvider = new ArchiveRadialProvider(config);
@@ -119,6 +127,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		synchronized (sensorDescription)
 		{
 			super.updateSensorDescription();
+			
 			sensorDescription.setId("NEXRAD_SENSOR");
 			sensorDescription.setUniqueIdentifier(SITE_UID_PREFIX); // + config.siteIds.get(0));
 			sensorDescription.setDescription("Sensor supporting Level II Nexrad data");
@@ -128,7 +137,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 			for (String siteId: config.siteIds)
 			{
 				String name = "site_" + siteId;
-				String href = SITE_UID_PREFIX + "_" + siteId;
+				String href = SITE_UID_PREFIX + siteId;
 				((PhysicalSystem)sensorDescription).getComponentList().add(name, href, null);
 			}
 		}
@@ -143,7 +152,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		// generate station FOIs and full descriptions
 		for (String siteId: config.siteIds)
 		{
-			String uid = SITE_UID_PREFIX  + siteId;
+			String uid = SITE_UID_PREFIX + siteId;
 			String name = siteId;
 			String description = "Nexrad site " + siteId;
 
@@ -169,7 +178,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 			siteDescs.put(uid, sensorDesc);
 		}
 
- 		dataInterface.start(radialProvider); 
+		dataInterface.start(radialProvider); 
 	}
 
 
@@ -229,5 +238,11 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	@Override
 	public Collection<String> getFeaturesOfInterestIDs() {
 		return Collections.unmodifiableCollection(foiIDs);
+	}
+
+	@Override
+	public Collection<String> getEntitiesWithFoi(String foiID)
+	{
+		return Arrays.asList(foiID);
 	}
 }

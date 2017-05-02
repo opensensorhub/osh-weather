@@ -121,7 +121,7 @@ public class ChunkPathQueue
 				type = t;
 			}
 			dump(queue);					
-			Thread.sleep(250L);
+			Thread.sleep(500L);
 		}
 
 		return null;
@@ -133,7 +133,7 @@ public class ChunkPathQueue
 		assert s3client != null;
 		try
 		{
-			System.err.println("*** Checking nextFile");
+//			System.err.println("*** Checking nextFile");
 			String nextFile = next();
 			S3Object chunk = AwsNexradUtil.getChunk(s3client, AwsNexradUtil.BUCKET_NAME, nextFile);
 			nextFile = nextFile.replaceAll("/", "_");
@@ -142,7 +142,7 @@ public class ChunkPathQueue
 			//  If I thread writing of file, I will have to put in a mechanism to notify the listener (NexradOutput)
 			//  when the file writing is complete.  Right now, I don't think it is needed. 
 			AwsNexradUtil.dumpChunkToFile(chunk, pout);
-			System.err.println("*** Dumped nextFile");
+//			System.err.println("*** Dumped nextFile");
 			return pout;
 		}
 		catch (InterruptedException e)
