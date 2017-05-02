@@ -1,4 +1,4 @@
-rootProject.name = 'osh-sensors-weather'
+rootProject.name = 'osh-weather'
 gradle.ext.oshCoreDir = "$rootDir/../osh-core"
 gradle.ext.oshCommDir = "$rootDir/../osh-comm"
 
