@@ -22,10 +22,14 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.impl.sensor.AbstractSensorModule;
+import org.sensorhub.impl.sensor.nexrad.aws.NexradSqsService;
+import org.sensorhub.impl.sensor.nexrad.aws.sqs.ChunkQueueManager;
 import org.sensorhub.impl.sensor.nexrad.aws.sqs.RealtimeRadialProvider;
 import org.sensorhub.impl.sensor.nexrad.ucar.ArchiveRadialProvider;
 import org.slf4j.Logger;
@@ -48,16 +52,17 @@ import net.opengis.sensorml.v20.PhysicalSystem;
 public class NexradSensor extends AbstractSensorModule<NexradConfig> implements IMultiSourceDataProducer
 {
 	static final Logger logger = LoggerFactory.getLogger(NexradSensor.class);
-	static final String SITE_UID_PREFIX = "urn:osh:sensor:nexrad:";
+	static final String SITE_UID_PREFIX = "urn:test:sensors:weather:nexrad";
 
 	NexradOutput dataInterface;
 	RadialProvider radialProvider;  // either Realtime or archive AWS source
 	boolean isRealtime;
-	
+
 	Set<String> foiIDs;
 	Map<String, PhysicalSystem> siteFois;
 	Map<String, PhysicalSystem> siteDescs;
 
+	NexradSqsService nexradSqs;
 
 	public NexradSensor() throws SensorHubException
 	{
@@ -66,32 +71,49 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		this.siteDescs = new LinkedHashMap<String, PhysicalSystem>();
 	}
 
+	ChunkQueueManager chunkQueueManager;
+
 	public void setQueueActive() throws IOException {
-		if(isRealtime)
-			((RealtimeRadialProvider)radialProvider).setQueueActive();
-	}
-	
-	public void setQueueIdle() {
-		if(isRealtime)
-			((RealtimeRadialProvider)radialProvider).setQueueIdle();
+		if(!isRealtime) 
+			return;
+		nexradSqs.setQueueActive();
+		nexradSqs.setNumThreads(config.numThreads);
+		//		nexradSqs.setChunkQueue(chunkQueue);  // 
+		//		chunkQueue.setS3client(nexradSqs.getS3client());  //
+		//		nexradSqs.start();
 	}
 
-	
+	public void setQueueIdle() {
+		if(isRealtime)
+			nexradSqs.setQueueIdle();
+	}
+
 	@Override
 	public void init() throws SensorHubException
 	{
-	    super.init();
-        
-        // generate IDs
-        this.uniqueID = SITE_UID_PREFIX + "network";
-        this.xmlID = "NEXRAD_NETWORK";
-        
-	    if(config.archiveStartTime != null && config.archiveStopTime != null) {
-			radialProvider = new ArchiveRadialProvider(config);
+		super.init();
+
+		// generate IDs
+		this.uniqueID = SITE_UID_PREFIX + "network";
+		this.xmlID = "NEXRAD_NETWORK";
+
+		if(config.archiveStartTime != null && config.archiveStopTime != null) {
 			isRealtime = false;
+			radialProvider = new ArchiveRadialProvider(config);
 		} else {
-			radialProvider = new RealtimeRadialProvider(config);
-			isRealtime = true;
+			try {
+				isRealtime = true;
+				nexradSqs = new NexradSqsService(config.queueName, config.siteIds);
+				nexradSqs.setQueueIdleTimeMillis(TimeUnit.MINUTES.toMillis(config.queueIdleTimeMinutes));
+				chunkQueueManager = new ChunkQueueManager(this);
+				//  DECOUPLE ME!!!
+				nexradSqs.setChunkQueueManager(chunkQueueManager);
+				chunkQueueManager.setS3Client(nexradSqs.getS3client());
+				radialProvider = new RealtimeRadialProvider(this, chunkQueueManager);
+				setQueueActive();
+			} catch (IOException e) {
+				throw new SensorHubException("Could not instantiate NexradSqsService", e);
+			}
 		}
 		dataInterface = new NexradOutput(this);
 		addOutput(dataInterface, false);
@@ -105,7 +127,11 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		synchronized (sensorDescription)
 		{
 			super.updateSensorDescription();
+			
+			sensorDescription.setId("NEXRAD_SENSOR");
+			sensorDescription.setUniqueIdentifier(SITE_UID_PREFIX); // + config.siteIds.get(0));
 			sensorDescription.setDescription("Sensor supporting Level II Nexrad data");
+
 
 			// append href to all stations composing the network
 			for (String siteId: config.siteIds)
@@ -152,7 +178,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 			siteDescs.put(uid, sensorDesc);
 		}
 
- 		dataInterface.start(radialProvider); 
+		dataInterface.start(radialProvider); 
 	}
 
 
@@ -161,7 +187,7 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 	{
 		dataInterface.stop();
 		if(isRealtime)
-			((RealtimeRadialProvider)radialProvider).stop();
+			nexradSqs.stop();
 	}
 
 
@@ -214,10 +240,9 @@ public class NexradSensor extends AbstractSensorModule<NexradConfig> implements 
 		return Collections.unmodifiableCollection(foiIDs);
 	}
 
-    @Override
-    public Collection<String> getEntitiesWithFoi(String foiID)
-    {
-        // FOI ID same as entity ID
-        return Arrays.asList(foiID);
-    }
+	@Override
+	public Collection<String> getEntitiesWithFoi(String foiID)
+	{
+		return Arrays.asList(foiID);
+	}
 }

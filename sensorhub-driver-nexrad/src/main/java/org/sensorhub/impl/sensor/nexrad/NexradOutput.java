@@ -16,7 +16,6 @@ package org.sensorhub.impl.sensor.nexrad;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -25,6 +24,23 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
+
+import org.sensorhub.api.data.IMultiSourceDataInterface;
+import org.sensorhub.api.sensor.SensorDataEvent;
+import org.sensorhub.impl.sensor.AbstractSensorOutput;
+import org.sensorhub.impl.sensor.nexrad.aws.AwsNexradUtil;
+import org.sensorhub.impl.sensor.nexrad.aws.LdmRadial;
+import org.sensorhub.impl.sensor.nexrad.aws.MomentDataBlock;
+import org.sensorhub.impl.sensor.nexrad.aws.sqs.ChunkPathQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.vast.data.DataBlockMixed;
+import org.vast.data.DataRecordImpl;
+import org.vast.data.QuantityImpl;
+import org.vast.data.SWEFactory;
+import org.vast.data.TimeImpl;
+import org.vast.swe.SWEConstants;
+import org.vast.swe.SWEHelper;
 
 import net.opengis.swe.v20.Count;
 import net.opengis.swe.v20.DataArray;
@@ -36,24 +52,6 @@ import net.opengis.swe.v20.DataType;
 import net.opengis.swe.v20.Quantity;
 import net.opengis.swe.v20.Time;
 
-import org.sensorhub.api.data.IMultiSourceDataInterface;
-import org.sensorhub.api.sensor.SensorDataEvent;
-import org.sensorhub.impl.sensor.AbstractSensorOutput;
-import org.sensorhub.impl.sensor.nexrad.aws.AwsNexradUtil;
-import org.sensorhub.impl.sensor.nexrad.aws.LdmLevel2Reader;
-import org.sensorhub.impl.sensor.nexrad.aws.LdmRadial;
-import org.sensorhub.impl.sensor.nexrad.aws.MomentDataBlock;
-import org.sensorhub.impl.sensor.nexrad.aws.sqs.ChunkPathQueue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.vast.data.DataBlockMixed;
-import org.vast.data.DataRecordImpl;
-import org.vast.data.QuantityImpl;
-import org.vast.data.TimeImpl;
-import org.vast.swe.SWEConstants;
-import org.vast.swe.SWEHelper;
-
-
 /**
  * 
  * <p>Title: NexradOutput.java</p>
@@ -64,6 +62,7 @@ import org.vast.swe.SWEHelper;
  * 
  *  TODO - verify that rangeToCenterOfFirstGate and gateSize are constants; how do we specify UOM for a count
  */
+
 public class NexradOutput extends AbstractSensorOutput<NexradSensor> implements IMultiSourceDataInterface
 {
 	private static final Logger logger = LoggerFactory.getLogger(NexradOutput.class);
@@ -77,7 +76,6 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor> implements 
 	//	LdmFilesProvider ldmFilesProvider;
 	ChunkPathQueue chunkQueue;
     Map<String, DataBlock> latestRecords = new LinkedHashMap<String, DataBlock>();
-    
 
 	//  Listener Check needed to know if anyone is receiving events to know when to delete the AWS queue
 	static final long LISTENER_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(1); 
@@ -103,7 +101,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor> implements 
 	{
 		//  Add Location only as ouptut- Alex is adding support for this
 		//		SweHelper.newLocationVectorLLa(...);
-		SWEHelper fac = new SWEHelper();
+		SWEFactory fac = new SWEFactory();
 
 		// SWE Common data structure
 		nexradStruct = new DataRecordImpl(8);  // was 6 before I added siteId and it still worked?
@@ -119,7 +117,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor> implements 
 		// 88D site identifier (1)
 		nexradStruct.addComponent("siteId", fac.newText());
 		nexradStruct.getFieldList().getProperty(1).setRole(ENTITY_ID_URI); // use site ID as entity ID     
-        
+
 		// 2
 		Quantity el = new QuantityImpl();
 		el.getUom().setCode("deg");
@@ -214,82 +212,77 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor> implements 
 		swData.setElementCount(numSwGates); 
 		nexradStruct.addComponent("SpectrumWidth", swData);
 
-		//		encoding = SWEHelper.getDefaultBinaryEncoding(nexradStruct);
-		encoding = fac.newTextEncoding();
-	}
-
-	protected void start(ChunkPathQueue provider)
-	{
-		if (sendData)
-			return;
-
-		sendData = true;
-
-		chunkQueue = provider;
-
-		// start main measurement thread
-		Thread t = new Thread(new Runnable()
-		{
-			public void run()
-			{
-				while (sendData)
-				{
-					try {
-						Path p = chunkQueue.nextFile();
-						logger.debug("Reading {}" , p.toString());
-						LdmLevel2Reader reader = new LdmLevel2Reader();
-						List<LdmRadial> radials = reader.read(p.toFile());
-						if(radials == null) { 
-							continue;
-						}
-						sendRadials(radials);
-					} catch (IOException e) {
-						e.printStackTrace(System.err);
-						logger.error(e.getMessage());
-						continue;
-					}
-				}
-			}
-		});
-		t.start();
+		encoding = SWEHelper.getDefaultBinaryEncoding(nexradStruct);
+		//		encoding = fac.newTextEncoding();
 	}
 
 	RadialProvider radialProvider;
 	protected void start(RadialProvider provider)
 	{
 		this.radialProvider = provider;
-		
+
 		if (sendData)
 			return;
 
 		sendData = true;
 
+		NexradConfig config = nexradSensor.getConfiguration();
+		for(String site: config.siteIds) {
+			Thread t = new GetRadialsThread(site);
+			t.start();
+		}
+
 		// start sending of radials
-		Thread t = new Thread(new Runnable()
-		{
-			public void run()
-			{
-				while (sendData)
-				{
-					try {
-						List<LdmRadial> radials = radialProvider.getNextRadials();
-						if(radials == null)
-							continue;
-//						System.err.println("Read " + radials.size() + " radials");
-						sendRadials(radials);
-					} catch (IOException e) {
-						e.printStackTrace();
-						continue;
-					}
-				}
-			}
-		});
-		t.start();
+		//		Thread t = new Thread(new Runnable()
+		//		{
+		//			public void run()
+		//			{
+		//				while (sendData)
+		//				{
+		//					try {
+		//						List<LdmRadial> radials = radialProvider.getNextRadials();
+		//						if(radials == null)
+		//							continue;
+		////						System.err.println("Read " + radials.size() + " radials");
+		//						sendRadials(radials);
+		//					} catch (IOException e) {
+		//						e.printStackTrace();
+		//						continue;
+		//					}
+		//				}
+		//			}
+		//		});
+		//		t.start();
 	}
 
-	
+	class GetRadialsThread extends Thread {
+		String site;
+
+		public GetRadialsThread(String site) {
+			this.site = site;
+		}
+
+		@Override
+		public void run() {
+			while (sendData)
+			{
+				try {
+					List<LdmRadial> radials = radialProvider.getNextRadials(site);
+					if(radials == null)
+						continue;
+					//					System.err.println("Read " + radials.size() + " radials");
+					sendRadials(radials);
+				} catch (IOException e) {
+					e.printStackTrace();
+					continue;
+				}
+			}
+		}
+	}
+
 	private void sendRadials(List<LdmRadial> radials) throws IOException
 	{
+		int i=0;
 		for(LdmRadial radial: radials) {
 			// build and publish datablock
 			DataArray refArr = (DataArray)nexradStruct.getComponent(13);
@@ -300,7 +293,7 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor> implements 
 			MomentDataBlock refMomentData = radial.momentData.get("REF");
 			MomentDataBlock velMomentData = radial.momentData.get("VEL");
 			MomentDataBlock swMomentData = radial.momentData.get("SW");
-//
+			//
 			if(refMomentData == null) {
 				refArr.updateSize(1);
 			} else {
@@ -319,18 +312,19 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor> implements 
 				swArr.updateSize(swMomentData.numGates);
 			}
 			DataBlock nexradBlock = nexradStruct.createDataBlock();
-
+			//
 			long days = radial.dataHeader.daysSince1970;
 			long ms = radial.dataHeader.msSinceMidnight;
 			double utcTime = (double)(AwsNexradUtil.toJulianTime(days, ms)/1000.);
+			long utcTimeMs = AwsNexradUtil.toJulianTime(days, ms);
 			nexradBlock.setDoubleValue(0, utcTime);
 			nexradBlock.setStringValue(1, radial.dataHeader.siteId);
 			nexradBlock.setDoubleValue(2, radial.dataHeader.elevationAngle);
 			nexradBlock.setDoubleValue(3, radial.dataHeader.azimuthAngle);
-
+			//
 			float [] f = new float[1];
 			if(refMomentData != null) {
-//				System.err.println(refMomentData.numGates);
+				//				System.err.println(refMomentData.numGates);
 				nexradBlock.setShortValue(4, refMomentData.rangeToCenterOfFirstGate);
 				nexradBlock.setShortValue(5, refMomentData.rangeSampleInterval);
 				nexradBlock.setIntValue(6, refMomentData.numGates);
@@ -359,8 +353,8 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor> implements 
 			}
 
 			if(refMomentData != null) {
-//				float [] d = refMomentData.getData();
-//				for(float ff: d)  System.err.println(ff);
+				//				float [] d = refMomentData.getData();
+				//				for(float ff: d)  System.err.println(ff);
 				((DataBlockMixed)nexradBlock).getUnderlyingObject()[13].setUnderlyingObject(refMomentData.getData());
 			} else {
 				((DataBlockMixed)nexradBlock).getUnderlyingObject()[13].setUnderlyingObject(f);
@@ -381,56 +375,12 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor> implements 
 			String siteUID = NexradSensor.SITE_UID_PREFIX + radial.dataHeader.siteId;
 			latestRecord = nexradBlock;
 	        latestRecords.put(siteUID, latestRecord);
+			
 			latestRecordTime = System.currentTimeMillis();
-			eventHandler.publishEvent(new SensorDataEvent(latestRecordTime, siteUID, NexradOutput.this, nexradBlock));
+			eventHandler.publishEvent(new SensorDataEvent(latestRecordTime, NexradOutput.this, nexradBlock));
 		}
-		
+
 	}
-
-	//	private void sendRadial() throws IOException
-	//	{
-	//		//  What will really be happening. We will be getting one full sweep every 5 to 6 minutes, and then a pause
-	//		//  So need to sim this somehow
-	//		String testFile = "C:/Data/sensorhub/Level2/HTX/KHTX20110427_205716_V03";
-	//		Level2Reader reader = new Level2Reader();
-	//		Sweep sweep = reader.readSweep(testFile, Level2Product.REFLECTIVITY);
-	//
-	//		// build and publish datablock
-	//		DataBlock dataBlock = nexradStruct.createDataBlock();
-	//		Radial first = sweep.getRadials().get(0);
-	//		long time = (long)first.radialStartTime / 1000;
-	//		dataBlock.setLongValue(0, time);
-	//		dataBlock.setDoubleValue(1, first.elevation);
-	//		dataBlock.setDoubleValue(2, first.azimuth);
-	//		dataBlock.setIntValue(first.numGates);
-	//		dataBlock.setUnderlyingObject(first.dataFloat);
-	//
-	//		//        latestRecord = dataBlock;
-	//		eventHandler.publishEvent(new SensorDataEvent(1, NexradOutput.this, dataBlock));
-	//	}
-
-	//
-	//	protected void startFile()
-	//	{
-	//		if (timer != null)
-	//			return;
-	//		timer = new Timer();
-	//
-	//		// start main measurement generation thread
-	//		TimerTask task = new TimerTask() {
-	//			public void run()
-	//			{
-	//				try {
-	//					sendRadial();
-	//				} catch (IOException e) {
-	//					e.printStackTrace();
-	//				}
-	//			}            
-	//		};
-	//
-	//		timer.scheduleAtFixedRate(task, 0, (long)(getAverageSamplingPeriod()*1000));        
-	//	}
-
 
 	protected void stop()
 	{
@@ -461,7 +411,24 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor> implements 
 	{
 		return encoding;
 	}
-	
+
+
+	@Override
+	public DataBlock getLatestRecord()
+	{
+		return latestRecord;
+	}
+
+
+	@Override
+	public long getLatestRecordTime()
+	{
+		if (latestRecord != null) {
+			return latestRecord.getLongValue(0) * 1000;
+		}
+
+		return 0;
+	}
 
 	boolean noListeners = false;
 	class CheckNumListeners extends TimerTask {
@@ -489,7 +456,6 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor> implements 
 
 	}
 
-
     @Override
     public Collection<String> getEntityIDs()
     {
@@ -509,5 +475,4 @@ public class NexradOutput extends AbstractSensorOutput<NexradSensor> implements 
     {
         return latestRecords.get(entityID);
     }
-
 }

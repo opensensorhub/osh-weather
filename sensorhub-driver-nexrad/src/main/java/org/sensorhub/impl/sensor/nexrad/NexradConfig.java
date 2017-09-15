@@ -34,7 +34,6 @@ public class NexradConfig extends SensorConfig
     
 	@DisplayInfo(desc="Path to incoming Nexrad Files")
     public String rootFolder;
-//	public Path siteFolder;
 	
 	//  Realtime AWS controls
 	public int numThreads;

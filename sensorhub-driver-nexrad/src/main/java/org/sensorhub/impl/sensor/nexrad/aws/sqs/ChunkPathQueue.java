@@ -1,12 +1,14 @@
 package org.sensorhub.impl.sensor.nexrad.aws.sqs;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.sensorhub.impl.sensor.nexrad.RadialProvider;
@@ -27,7 +29,7 @@ import com.amazonaws.services.s3.model.S3Object;
  * @author T
  * @date Jul 27, 2016
  */
-public class ChunkPathQueue implements RadialProvider
+public class ChunkPathQueue 
 {
 	// Create priorityQueue for each site
 	//  either this class manages them all, or multiple instances one per site
@@ -35,16 +37,17 @@ public class ChunkPathQueue implements RadialProvider
 	Logger logger = LoggerFactory.getLogger(ChunkPathQueue.class);
 	PriorityBlockingQueue<String> queue;
 	AmazonS3Client s3client;
-	private static final int BUFFER_SIZE = 8192;
-	Path siteFolder;
+	Path siteFolder; 
+	String site;
 	int vol, chunk;
 	char type;
 	boolean first = true;
-	static final int START_SIZE = 3;
-	static final int SIZE_LIMIT = 12;
+	static final int START_SIZE = 3;  // allow settable
+	static final int SIZE_LIMIT = 8;
 
-	public ChunkPathQueue(Path dataFolder) throws IOException {
-		this.siteFolder = dataFolder;
+	public ChunkPathQueue(Path rootFolder, String site) throws IOException {
+		this.siteFolder = Paths.get(rootFolder.toString(), site);
+		this.site = site;
 		//  Make sure the target folder exists
 		FileUtils.forceMkdir(this.siteFolder.toFile());
 		queue = new PriorityBlockingQueue<>();
@@ -80,7 +83,7 @@ public class ChunkPathQueue implements RadialProvider
 	}
 
 	// If a force take, need to ensure that any previous chunks that come in later are not added to the queue
-	public String next() throws InterruptedException {
+	private String next() throws InterruptedException {
 		boolean next = false;
 		while(!next) {
 			if(first) {
@@ -118,7 +121,7 @@ public class ChunkPathQueue implements RadialProvider
 				type = t;
 			}
 			dump(queue);					
-			Thread.sleep(1000L);
+			Thread.sleep(500L);
 		}
 
 		return null;
@@ -130,6 +133,7 @@ public class ChunkPathQueue implements RadialProvider
 		assert s3client != null;
 		try
 		{
+//			System.err.println("*** Checking nextFile");
 			String nextFile = next();
 			S3Object chunk = AwsNexradUtil.getChunk(s3client, AwsNexradUtil.BUCKET_NAME, nextFile);
 			nextFile = nextFile.replaceAll("/", "_");
@@ -138,6 +142,7 @@ public class ChunkPathQueue implements RadialProvider
 			//  If I thread writing of file, I will have to put in a mechanism to notify the listener (NexradOutput)
 			//  when the file writing is complete.  Right now, I don't think it is needed. 
 			AwsNexradUtil.dumpChunkToFile(chunk, pout);
+//			System.err.println("*** Dumped nextFile");
 			return pout;
 		}
 		catch (InterruptedException e)
@@ -148,32 +153,5 @@ public class ChunkPathQueue implements RadialProvider
 
 	public void setS3client(AmazonS3Client s3client) {
 		this.s3client = s3client;
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sensorhub.impl.sensor.nexrad.RadialProvider#getNextRadial()
-	 */
-	@Override
-	public LdmRadial getNextRadial() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sensorhub.impl.sensor.nexrad.RadialProvider#getNextRadials()
-	 */
-	@Override
-	public List<LdmRadial> getNextRadials() throws IOException {
-		try {
-			Path p = nextFile();
-			logger.debug("Reading {}" , p.toString());
-			LdmLevel2Reader reader = new LdmLevel2Reader();
-			List<LdmRadial> radials = reader.read(p.toFile());
-			return radials;
-		} catch (IOException e) {
-			e.printStackTrace(System.err);
-			logger.error(e.getMessage());
-			return null;
-		}	
 	}
 }

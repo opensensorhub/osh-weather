@@ -19,5 +19,9 @@ import org.sensorhub.impl.sensor.nexrad.aws.LdmRadial;
 public interface RadialProvider {
 	
 	public LdmRadial getNextRadial();
+	// Deprecate this if we end up going to always passing site in
 	public List<LdmRadial>  getNextRadials() throws IOException;
+
+	public List<LdmRadial>  getNextRadials(String site) throws IOException;
+
 }
