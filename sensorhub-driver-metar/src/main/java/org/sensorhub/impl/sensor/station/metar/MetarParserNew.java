@@ -1,17 +1,11 @@
 package org.sensorhub.impl.sensor.station.metar;
 
 
-import java.io.File;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
-import java.time.temporal.JulianFields;
 import java.util.Arrays;
-import java.util.List;
 
-import org.joda.time.DateTime;
 import org.sensorhub.impl.sensor.station.metar.MetarConstants.Modifier;
 import org.sensorhub.impl.sensor.station.metar.RunwayVisualRange.Range;
 
